@@ -92,7 +92,7 @@ story = []
 
 story += [
     P("AI4Brain: a cognitive growth agent that shows its doubt", title),
-    P("Technical report for the CISTAC 1.0 AI4Brain challenge, Phase 1. Team: [team name]. Members: [member names].", subtitle),
+    P("Technical report for the CISTAC 1.0 AI4Brain challenge, Phase 1. Team: [team name]. Members: [member names]. Code: github.com/ahmedmakni-sys/k6-abdo_the_chair-CHLAMPY", subtitle),
     P(f"<b>Summary.</b> AI4Brain assesses ten thinking skills through adaptive tasks, keeps a historised Brain Twin in which every score carries a 90% credible range, "
       f"coaches in plain language from evidence it can show, and builds a plan that changes after each session. Code measures and decides, and language models only phrase. "
       f"The coach therefore runs offline and cannot state what the evidence does not support. On simulated learners, true values fell inside the 90% range {pc(clean['coverage_90'])} of the time, "
