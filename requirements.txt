@@ -1,0 +1,6 @@
+flask>=3.0
+numpy>=1.26
+# Optional: Claude-written coaching (needs ANTHROPIC_API_KEY). Without it the built-in writer is used.
+anthropic>=2.0
+# Development and evaluation
+pytest>=8.0
