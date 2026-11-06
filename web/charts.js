@@ -51,7 +51,9 @@ const Charts = (() => {
       return [cx + (R * v * Math.cos(a)) / 100, cy + (R * v * Math.sin(a)) / 100];
     };
     const poly = (vals) => vals.map((v, i) => pt(i, v).map((x) => x.toFixed(1)).join(",")).join(" ");
-    let svg = `<svg viewBox="0 0 ${size} ${size + 4}" role="img" aria-label="${esc(opts.label || "Radar chart of estimated percentage and uncertainty for each skill")}">`;
+    /* Compact charts crop the empty margin above and below the labels. */
+    const vb = compact ? `0 ${Math.round(size * 0.12)} ${size} ${Math.round(size * 0.84)}` : `0 0 ${size} ${size + 4}`;
+    let svg = `<svg viewBox="${vb}" role="img" aria-label="${esc(opts.label || "Radar chart of estimated percentage and uncertainty for each skill")}">`;
     for (const ring of [25, 50, 75, 100]) {
       svg += `<polygon points="${poly(rows.map(() => ring))}" fill="none" stroke="${GRID}" stroke-width="1"/>`;
       const p = pt(0, ring);

@@ -397,12 +397,17 @@ details.earlier .plan-version { padding-left: var(--s-4); border-left: 1px solid
 
 /* Welcome */
 .welcome { max-width: 1080px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: var(--s-7); align-items: center; min-height: calc(100vh - 96px); }
-.welcome h1 { font-size: var(--t-48); line-height: 1.04; }
+.welcome-brand { padding: 0 0 var(--s-6); }
+.welcome h1 { font-size: clamp(var(--t-36), 4.4vw, 3.75rem); line-height: 1.02; letter-spacing: -.02em; max-width: 13ch; }
 .welcome .tag { font-size: var(--t-18); color: var(--barrel-2); margin: var(--s-4) 0 var(--s-5); max-width: 40ch; }
-.welcome-radar svg { width: 100%; height: auto; }
+.welcome-radar { margin: 0; }
+.welcome-radar svg { width: 100%; height: auto; display: block; }
+.welcome-radar figcaption { text-align: center; max-width: 40ch; margin: var(--s-2) auto 0; }
 .consent { padding: var(--s-4) var(--s-5); margin-bottom: var(--s-4); }
 .consent label { display: flex; gap: var(--s-3); align-items: flex-start; padding: var(--s-2) 0; }
+.consent label.retention { align-items: center; flex-wrap: wrap; }
 .consent input[type=checkbox] { margin-top: 3px; }
+.consent-note { margin: var(--s-2) 0 0; }
 .docs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--s-4) var(--s-5); }
 .docs-grid h3 { margin-bottom: var(--s-1); }
 
@@ -428,6 +433,9 @@ details.earlier .plan-version { padding-left: var(--s-4); border-left: 1px solid
   .twin-hero, .coach-grid, .lab-grid, .welcome { grid-template-columns: minmax(0, 1fr); }
   .welcome { min-height: 0; gap: var(--s-5); }
   .welcome h1 { font-size: 2.25rem; }
+  .welcome-brand { padding-bottom: var(--s-5); }
+  .welcome-brand span { display: inline; }
+  .welcome-radar { padding-top: var(--s-5); border-top: 1px solid var(--hairline); }
   .week { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .small-multiples { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); }
   .sm { padding: var(--s-2) var(--s-2) var(--s-1); }

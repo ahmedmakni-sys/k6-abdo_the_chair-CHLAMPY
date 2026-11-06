@@ -59,16 +59,17 @@ function renderWelcome() {
   ].map(([name, pct, low, high]) => ({ name, pct, low, high, n_trials: 1 }));
   main.innerHTML = `<div class="welcome">
     <div>
+      <div class="brand welcome-brand">${LOGO}<span>AI4Brain</span></div>
       <h1>A twin of how you think, with the doubt left in.</h1>
       <p class="tag">Practise ten thinking skills. Every estimate comes with an honest range, and every piece of coaching shows its evidence.</p>
       <form class="consent" id="consent-form">
         <label><input type="checkbox" id="c-store" required> <span><b>Save my results on this device.</b> Required. I can export or delete them at any time.</span></label>
         <label><input type="checkbox" id="c-llm"> <span>Let Claude write coaching messages. Optional. It sees summary numbers and the question I ask, with personal details removed and no identifier. This also needs an API key on the server.</span></label>
         <label><input type="checkbox" id="c-voice"> <span>Allow voice coaching. Optional. Speech stays in the browser and no voice print is ever made.</span></label>
-        <label style="align-items:center"><span>Delete my data after</span>
+        <label class="retention"><span>Delete my data after</span>
           <select id="c-ret" aria-label="Delete my data after"><option value="30">30 days idle</option><option value="90">90 days idle</option><option value="180" selected>180 days idle</option><option value="365">1 year idle</option></select>
         </label>
-        <p class="small muted" style="margin:6px 0 0">This is a practice tool. It is not a medical or psychological test. No camera or biometric data is used.</p>
+        <p class="small muted consent-note">This is a practice tool. It is not a medical or psychological test. No camera or biometric data is used.</p>
       </form>
       <div class="row">
         <button class="btn primary big" id="start">Start my twin</button>
@@ -76,26 +77,41 @@ function renderWelcome() {
       </div>
       <div id="welcome-err"></div>
     </div>
-    <div class="welcome-radar" aria-hidden="true">${Charts.radar(sampleRows, { size: 520 })}</div>
+    <figure class="welcome-radar" aria-hidden="true"><div class="radar-slot"></div><figcaption class="small muted">A sample twin. The line is each estimate; the shaded band is how far it could be off.</figcaption></figure>
   </div>`;
-  document.getElementById("start").onclick = async () => {
+  /* Drawn at its real width, and brought into focus once: the app's idea in one moment. */
+  const slot = main.querySelector(".radar-slot");
+  slot.innerHTML = Charts.radar(sampleRows, { size: slot.clientWidth || 520 });
+  slot.classList.add("focus-pull");
+  const err = document.getElementById("welcome-err");
+  const startBtn = document.getElementById("start");
+  startBtn.onclick = () => busy(startBtn, async () => {
     const box = document.getElementById("c-store");
     if (!box.checked) {
-      document.getElementById("welcome-err").innerHTML = errorBox("Tick the first box to save results. Your twin can't work without it. Or explore the sample data instead.");
+      err.innerHTML = errorBox("Tick the first box to save results. Your twin can't work without it. Or explore the sample data instead.");
       box.focus();
       return;
     }
-    const r = await api("/api/profile", { method: "POST", body: { consent: { store: true, llm: document.getElementById("c-llm").checked, voice: document.getElementById("c-voice").checked }, retention_days: +document.getElementById("c-ret").value } });
-    store.set("profile", r.profile_id);
-    location.hash = "#/practice";
-  };
-  document.getElementById("sample").onclick = async (e) => {
-    e.target.disabled = true;
-    e.target.textContent = "Building sample data";
-    const r = await api("/api/demo", { method: "POST" });
-    store.set("profile", r.profile_id);
-    location.hash = "#/twin";
-  };
+    err.innerHTML = "";
+    try {
+      const r = await api("/api/profile", { method: "POST", body: { consent: { store: true, llm: document.getElementById("c-llm").checked, voice: document.getElementById("c-voice").checked }, retention_days: +document.getElementById("c-ret").value } });
+      store.set("profile", r.profile_id);
+      location.hash = "#/practice";
+    } catch (e) { err.innerHTML = errorBox(`Your twin wasn't created: ${e.message}. Check the app is still running, then try again.`); }
+  });
+  const sampleBtn = document.getElementById("sample");
+  sampleBtn.onclick = () => busy(sampleBtn, async () => {
+    sampleBtn.textContent = "Building sample data";
+    err.innerHTML = "";
+    try {
+      const r = await api("/api/demo", { method: "POST" });
+      store.set("profile", r.profile_id);
+      location.hash = "#/twin";
+    } catch (e) {
+      sampleBtn.textContent = "Explore sample data";
+      err.innerHTML = errorBox(`The sample data wasn't built: ${e.message}. Try again.`);
+    }
+  });
 }
 
 /* ---------- twin dashboard ---------- */
