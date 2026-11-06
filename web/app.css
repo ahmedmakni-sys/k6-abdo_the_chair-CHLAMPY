@@ -166,6 +166,17 @@ details.why summary { cursor: pointer; color: var(--glass-deep); font-size: var(
 details.why summary:hover { text-decoration: underline; }
 details.why ul { margin: var(--s-2) 0 0; font-size: var(--t-14); color: var(--barrel-2); }
 .loading { color: var(--barrel-3); padding: var(--s-6) 0; }
+.note { margin-top: var(--s-2); }
+.last { margin-bottom: 0; }
+.tight-list { margin: 0; }
+.intro { max-width: 52ch; }
+.num-input { width: 96px; font-family: var(--font-display); }
+.est-row { justify-content: center; }
+.goal-form { margin-top: var(--s-4); }
+/* While the next page loads, the current one dims after a short delay, so fast loads never flicker. */
+#main > * { transition: opacity var(--dur-move) var(--ease); }
+#main[aria-busy="true"] { cursor: progress; }
+#main[aria-busy="true"] > * { opacity: .5; transition-delay: 150ms; }
 
 /* ---------- tooltip ---------- */
 #tooltip { position: fixed; z-index: 40; pointer-events: none; background: var(--barrel); color: var(--paper); padding: var(--s-2) var(--s-3); border-radius: var(--r-control); font-size: var(--t-14); max-width: 260px; line-height: 1.35; box-shadow: var(--shadow-float); }
@@ -238,7 +249,7 @@ table.data td.n, table.data th.n { text-align: right; }
 #big-curve { padding: var(--s-4); }
 table.data td.res-ok { color: var(--ok-ink); }
 table.data td.res-no { color: var(--flag-ink); }
-table.data td.moved { font-family: var(--font-display); font-size: var(--t-16); }
+table.data td.moved { font-family: var(--font-display); font-size: var(--t-16); white-space: nowrap; }
 table.data td.moved.up { color: var(--ok-ink); }
 table.data td.moved.down { color: var(--flag-ink); }
 

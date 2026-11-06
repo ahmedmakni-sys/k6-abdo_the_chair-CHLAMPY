@@ -167,7 +167,7 @@ async function renderTwin() {
       </div>
       <div>
         <div class="ranges" id="range-list"></div>
-        <p class="small muted" style="margin-top:10px">Percent means the share of a balanced practice set you'd be expected to solve. It is not a comparison with other people.</p>
+        <p class="small muted note">Percent means the share of a balanced practice set you'd be expected to solve. It is not a comparison with other people.</p>
         <details class="why"><summary>Show these numbers as a table</summary><div id="radar-table"></div></details>
       </div>
     </div>
@@ -296,8 +296,8 @@ async function renderSkill(key) {
     <section class="section"><h2>How this has moved</h2>
       <div class="sm chart" id="big-curve">${d.history.length ? "" : `<p class="muted">No check-ins yet. Your first check-in draws the first point here.</p>`}</div>
       ${d.projection.available
-        ? `<p class="small muted" style="margin-top:6px">${esc(d.projection.wording)} Chance the underlying trend is upward: ${fmt(d.projection.prob_growing * 100)}%.</p>`
-        : `<p class="small muted" style="margin-top:6px">No projection yet. ${esc(d.projection.reason)}</p>`}
+        ? `<p class="small muted note">${esc(d.projection.wording)} Chance the underlying trend is upward: ${fmt(d.projection.prob_growing * 100)}%.</p>`
+        : `<p class="small muted note">No projection yet. ${esc(d.projection.reason)}</p>`}
     </section>
 
     <section class="section"><h2>Why the estimate is where it is</h2>
@@ -308,7 +308,7 @@ async function renderSkill(key) {
     <section class="section"><h2>What this measures, and its limits</h2>
       <div class="docs-grid limits">
         <div><h3>Definition</h3><p>${esc(info.definition)}</p></div>
-        <div><h3>Tasks</h3><ul style="margin:0;padding-left:18px">${info.tasks.map((x) => `<li><b>${esc(x.name)}.</b> ${esc(x.how)}</li>`).join("")}</ul></div>
+        <div><h3>Tasks</h3><ul class="tight-list">${info.tasks.map((x) => `<li><b>${esc(x.name)}.</b> ${esc(x.how)}</li>`).join("")}</ul></div>
         <div><h3>Scoring</h3><p>${esc(info.scoring)}</p></div>
         <div><h3>Uncertainty</h3><p>${esc(info.uncertainty)}</p></div>
         <div><h3>Known biases</h3><p>${esc(info.biases)}</p></div>
@@ -380,7 +380,7 @@ async function runSession(dimension, mode) {
     return new Promise((resolve) => {
       const task = dimInfo.key === "metacognition" ? null : dimInfo.tasks.find((t) => t.key === item.task);
       stage.innerHTML = `<h2>${esc(task ? task.name : "Confidence check")}</h2>
-        <p style="max-width:52ch">${esc(item.instructions)}${dimInfo.key === "metacognition" ? " After each answer, say how sure you are. Knowing what you don't know counts here." : ""}</p>
+        <p class="intro">${esc(item.instructions)}${dimInfo.key === "metacognition" ? " After each answer, say how sure you are. Knowing what you don't know counts here." : ""}</p>
         ${item.kind === "choice" ? `<p class="key-hint">Use the left and right arrow keys, or tap the buttons.</p>` : ""}
         <button class="btn primary big" id="go">Begin</button>`;
       const go = document.getElementById("go");
@@ -442,7 +442,7 @@ async function askEstimate(sessionId, dimInfo, count) {
   if (!count) { await showSummary(sessionId, null, dimInfo); return; }
   stage.innerHTML = `<h2>Before you see the results</h2>
     <p>You answered ${count} items. How many do you think you got right? This helps measure self-monitoring.</p>
-    <div class="row" style="justify-content:center"><input id="est" type="number" min="0" max="${count}" value="${Math.round(count * 0.6)}" class="word-input" style="width:110px" aria-label="Estimated number right"><button class="btn primary" id="est-go">See results</button><button class="btn" id="est-skip">Skip</button></div>`;
+    <div class="row est-row"><input id="est" type="number" min="0" max="${count}" value="${Math.round(count * 0.6)}" class="num-input" aria-label="Estimated number right"><button class="btn primary" id="est-go">See results</button><button class="btn" id="est-skip">Skip</button></div>`;
   document.getElementById("est-go").onclick = () => showSummary(sessionId, +document.getElementById("est").value, dimInfo);
   document.getElementById("est-skip").onclick = () => showSummary(sessionId, null, dimInfo);
   document.getElementById("est").focus();
@@ -463,7 +463,7 @@ async function showSummary(sessionId, estimate, dimInfo) {
       <div><b>${fmt(st.data_quality * 100)}%</b><span>evidence weight</span></div>
       ${st.self_estimate !== undefined ? `<div><b>${st.self_estimate} of ${st.n}</b><span>your guess (actual ${st.actual_correct})</span></div>` : ""}
     </div>
-    ${st.focus_lost || st.too_fast ? `<p class="small muted" style="margin:10px 0 0">${st.focus_lost ? `${st.focus_lost} items happened while the window had lost focus. ` : ""}${st.too_fast ? `${st.too_fast} items were answered too fast to have been read. ` : ""}These count for less.</p>` : ""}
+    ${st.focus_lost || st.too_fast ? `<p class="small muted note">${st.focus_lost ? `${st.focus_lost} items happened while the window had lost focus. ` : ""}${st.too_fast ? `${st.too_fast} items were answered too fast to have been read. ` : ""}These count for less.</p>` : ""}
     </div>
 
     <section class="section"><h2>Before and after</h2>
@@ -517,9 +517,9 @@ async function renderPlan() {
 
     <section class="section"><h2>Goals</h2>
       <div id="goals">${goalRows(t.goals, true) || `<p class="muted">No goals yet. Add one and the plan will shift towards it.</p>`}</div>
-      <form class="form-row" id="goal-form" style="margin-top:12px">
+      <form class="form-row goal-form" id="goal-form">
         <label>Skill<select id="g-dim">${t.profile.map((d) => `<option value="${d.key}">${esc(d.name)}</option>`).join("")}</select></label>
-        <label>Target percent<input id="g-target" type="number" min="1" max="99" value="70" style="width:90px"></label>
+        <label>Target percent<input id="g-target" class="num-input" type="number" min="1" max="99" value="70"></label>
         <label>By<input id="g-due" type="date" value="${defaultDue}"></label>
         <button class="btn primary" type="submit">Add goal</button>
       </form><div id="goal-err"></div>
@@ -665,7 +665,7 @@ function scorePanel(score) {
     <div class="comps">${Object.values(score.components).map((c) => `<div class="comp-row"><span>${esc(c.name)} <span class="small muted">(${Math.round(c.weight * 100)}%)</span></span><div class="comp-bar"><i style="width:${c.score * 100}%"></i></div><span class="num">${c.observations ? fmt(c.score * 100) : "?"}</span></div>`).join("")}</div>
     <p class="formula">Score = 100 x (0.20 C + 0.25 V + 0.20 I + 0.20 A + 0.15 R)</p>
     ${measured ? `<p class="small muted">If the weights shifted, your score would stay between ${fmt(score.weight_low)} and ${fmt(score.weight_high)}. With equal weights it would be ${fmt(score.equal_weights_score)}.</p>` : ""}
-    <p class="small muted" style="margin-bottom:0">${esc(score.note)}</p>
+    <p class="small muted last">${esc(score.note)}</p>
   </div>`;
 }
 
@@ -875,6 +875,8 @@ async function route() {
       catch { store.del("profile"); return renderWelcome(); }
     }
     const parts = location.hash.replace(/^#\//, "").split("/");
+    /* Dim the old page while the next one loads; a session manages its own screen. */
+    if (parts[0] !== "session") main.setAttribute("aria-busy", "true");
     switch (parts[0]) {
       case "practice": await renderPractice(); break;
       case "plan": await renderPlan(); break;
@@ -888,6 +890,8 @@ async function route() {
     window.scrollTo(0, 0);
   } catch (err) {
     main.innerHTML = `<div class="page">${errorBox(err)}<a class="btn" href="#/twin">Back to your twin</a></div>`;
+  } finally {
+    main.removeAttribute("aria-busy");
   }
 }
 window.addEventListener("hashchange", route);
