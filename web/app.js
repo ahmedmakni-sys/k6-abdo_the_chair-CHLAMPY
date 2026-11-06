@@ -22,14 +22,14 @@ async function api(path, opts = {}) {
   return data;
 }
 
-const LOGO = `<svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,10 29,23 16,30 3,23 3,10" fill="#1468B8"/><polygon points="16,9 23,13 23,20 16,24 9,20 9,13" fill="#E46F1F"/></svg>`;
+const LOGO = `<svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 29,10 29,23 16,30 3,23 3,10" fill="#2F6F8F"/><polygon points="16,9 23,13 23,20 16,24 9,20 9,13" fill="#E2AE2A"/></svg>`;
 
 function renderRail(active) {
   const links = [["#/twin", "Brain Twin"], ["#/practice", "Practice"], ["#/plan", "Plan and goals"], ["#/coach", "Coach"], ["#/lab", "AI collaboration"], ["#/data", "My data"]];
   rail.hidden = false;
-  rail.innerHTML = `<div class="brand">${LOGO}AI4Brain</div>` +
+  rail.innerHTML = `<div class="brand">${LOGO}<span>AI4Brain</span></div><div class="rail-links">` +
     links.map(([h, t]) => `<a href="${h}" ${h === active ? 'aria-current="page"' : ""}>${t}</a>`).join("") +
-    `<div class="rail-foot">Practice tool only. It says nothing about your health.</div>`;
+    `</div><div class="rail-foot">Practice tool only. It says nothing about your health.</div>`;
 }
 
 function errorBox(err) { return `<div class="error" role="alert">${esc(err.message || err)}</div>`; }
@@ -136,7 +136,7 @@ async function renderTwin() {
     <div class="twin-hero">
       <div class="radar-wrap">
         <div id="radar"></div>
-        <div class="legend"><span><i style="background:#0e4f8f;height:3px"></i>Estimate</span><span><i style="background:#a9cdec"></i>90% range</span></div>
+        <div class="legend"><span><i class="est"></i>Estimate</span><span><i class="band"></i>90% range</span></div>
         ${allTimes.length > 1 ? `<div class="scrub"><label for="scrub" class="small">Timeline</label><input type="range" id="scrub" min="0" max="${allTimes.length - 1}" value="${allTimes.length - 1}" aria-label="Move through your history"><output id="scrub-out"></output></div>` : ""}
       </div>
       <div>
@@ -233,7 +233,7 @@ function goalRows(goals, removable) {
   const cls = { reached: "good", "on the way": "", "needs attention": "warn", "past due": "bad" };
   return goals.map((g) => `<div class="goal-row">
     <div><b>${esc(g.name)}</b><div class="small muted">Target ${fmt(g.target_pct)}% by ${Charts.fmtDate(g.due_date)}</div></div>
-    <div>${Charts.rangeRow({ name: "", pct: g.current_pct, low: g.low, high: g.high, n_trials: 1 }).replace('<div class="range-name"><small></small></div>', "").replace("range-row", 'range-row" style="grid-template-columns:1fr 92px;padding:0')}</div>
+    <div>${Charts.rangeRow({ name: g.name, pct: g.current_pct, low: g.low, high: g.high, n_trials: 1 }, { compact: true })}</div>
     <div class="small">${fmt(g.prob_reached * 100)}% probability reached</div>
     <div class="row"><span class="chip ${cls[g.status]}">${icon[g.status]} ${esc(g.status)}</span>${removable ? `<button class="btn" data-del-goal="${g.id}">Remove</button>` : ""}</div>
   </div>`).join("");
@@ -298,8 +298,8 @@ async function renderPractice() {
     </div>
     <div class="practice-list">${t.profile.map((d) => `<div class="practice-row">
       <div><b>${esc(d.name)}</b><div class="plain">${esc(d.plain)}</div></div>
-      <div class="range-track" aria-hidden="true"><div class="range-band ${d.n_trials ? "" : "none"}" style="left:${d.low}%;width:${d.high - d.low}%"></div>${d.n_trials ? `<div class="range-dot" style="left:${d.pct}%"></div>` : ""}</div>
-      <div class="range-val">${d.n_trials ? `<b>${fmt(d.pct)}%</b><span>${fmt(d.low)} to ${fmt(d.high)}</span>` : `<b>?</b><span>no evidence</span>`}</div>
+      ${Charts.scale(d, !d.n_trials)}
+      ${Charts.rangeVal(d, !d.n_trials)}
       <div class="row"><button class="btn primary" data-start="${d.key}" data-mode="assess">Check in</button><button class="btn" data-start="${d.key}" data-mode="train">Practise</button></div>
     </div>`).join("")}</div>
   </div>`;
@@ -442,7 +442,7 @@ async function showSummary(sessionId, estimate, dimInfo) {
 }
 
 function track(x) {
-  return `<div class="range-track" aria-hidden="true"><div class="range-band" style="left:${x.low}%;width:${x.high - x.low}%"></div><div class="range-dot" style="left:${x.pct}%"></div></div>`;
+  return Charts.scale(x);
 }
 
 /* ---------- plan and goals ---------- */

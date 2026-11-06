@@ -1,7 +1,10 @@
 /* Hand-drawn SVG charts. No external libraries, so the app works offline. */
 const Charts = (() => {
-  const INK = "#0b2239", INK2 = "#3f5870", INK3 = "#6f8498", GRID = "#d3dfe9";
-  const BAND = "#a9cdec", SIGNAL = "#1468b8", DEEP = "#0e4f8f", EMBER = "#c9570f";
+  /* Colours come from tokens.css. Stylesheets load before this script runs, so they are ready here. */
+  const tok = (name, fallback) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+  const INK = tok("--barrel", "#1a1d21"), INK2 = tok("--barrel-2", "#46505b"), INK3 = tok("--barrel-3", "#5c6670"), GRID = tok("--hairline", "#dce2e7");
+  const BAND = tok("--haze", "#c9dce7"), SIGNAL = tok("--glass", "#2f6f8f"), DEEP = tok("--glass-deep", "#245a75"), LINE = tok("--glass-line", "#5e8fa8");
+  const MARK = tok("--mark", "#e2ae2a"), MARK_INK = tok("--mark-ink", "#7a5806"), PAPER = tok("--paper", "#ffffff");
 
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const fmt = (x) => Math.round(x);
@@ -40,12 +43,12 @@ const Charts = (() => {
     });
     const outer = rows.map((r) => r.high), inner = rows.map((r) => r.low);
     const pathOf = (vals) => "M" + vals.map((v, i) => pt(i, v).map((x) => x.toFixed(1)).join(" ")).join("L") + "Z";
-    svg += `<path d="${pathOf(outer)} ${pathOf(inner)}" fill="${BAND}" fill-opacity=".58" fill-rule="evenodd" stroke="none"/>`;
-    svg += `<polygon points="${poly(rows.map((r) => r.pct))}" fill="none" stroke="${DEEP}" stroke-width="2.25" stroke-linejoin="round"/>`;
+    svg += `<path d="${pathOf(outer)} ${pathOf(inner)}" fill="${BAND}" fill-opacity=".85" fill-rule="evenodd" stroke="${LINE}" stroke-width="1"/>`;
+    svg += `<polygon points="${poly(rows.map((r) => r.pct))}" fill="none" stroke="${INK}" stroke-width="2.25" stroke-linejoin="round"/>`;
     rows.forEach((r, i) => {
       const p = pt(i, r.pct);
       const empty = r.n_trials === 0;
-      svg += `<circle cx="${p[0]}" cy="${p[1]}" r="${empty ? 3.5 : 4.5}" fill="${empty ? "#fff" : DEEP}" stroke="${empty ? INK3 : "#fff"}" stroke-width="1.5"/>`;
+      svg += `<circle cx="${p[0]}" cy="${p[1]}" r="${empty ? 3.5 : 4.5}" fill="${empty ? PAPER : INK}" stroke="${empty ? INK3 : PAPER}" stroke-width="1.5"/>`;
       const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
       const lx = cx + (R + 16) * Math.cos(a), ly = cy + (R + 16) * Math.sin(a);
       const anchor = Math.abs(Math.cos(a)) < 0.2 ? "middle" : Math.cos(a) > 0 ? "start" : "end";
@@ -85,7 +88,7 @@ const Charts = (() => {
     const y = (v) => m.t + (1 - v / 100) * (H - m.t - m.b);
     let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.label || "Progress over time")}">`;
     for (const v of [0, 50, 100]) {
-      svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="${v === 0 ? "#b4c6d6" : GRID}" stroke-width="1"/>`;
+      svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="${v === 0 ? INK3 : GRID}" stroke-width="1"/>`;
       svg += `<text x="${m.l - 5}" y="${y(v) + 3.5}" font-size="10" text-anchor="end" fill="${INK3}">${v}</text>`;
     }
     const fd = (t) => new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
@@ -94,20 +97,20 @@ const Charts = (() => {
     if (points.length) {
       const up = points.map((p) => `${x(+new Date(p.at)).toFixed(1)},${y(p.high).toFixed(1)}`);
       const down = points.slice().reverse().map((p) => `${x(+new Date(p.at)).toFixed(1)},${y(p.low).toFixed(1)}`);
-      svg += `<polygon points="${up.concat(down).join(" ")}" fill="${BAND}" fill-opacity=".55"/>`;
+      svg += `<polygon points="${up.concat(down).join(" ")}" fill="${BAND}" fill-opacity=".85"/>`;
       if (proj) {
         const last = points[points.length - 1];
         const startPt = { at: opts.now || last.at, low90: last.low, high90: last.high, low50: last.pct, high50: last.pct, pct: last.pct };
         const seq = [startPt].concat(proj);
         const band = (lowK, highK) => seq.map((p) => `${x(+new Date(p.at)).toFixed(1)},${y(p[highK]).toFixed(1)}`)
           .concat(seq.slice().reverse().map((p) => `${x(+new Date(p.at)).toFixed(1)},${y(p[lowK]).toFixed(1)}`)).join(" ");
-        svg += `<polygon points="${band("low90", "high90")}" fill="${EMBER}" fill-opacity=".13"/>`;
-        svg += `<polygon points="${band("low50", "high50")}" fill="${EMBER}" fill-opacity=".2"/>`;
-        svg += `<polyline points="${seq.map((p) => `${x(+new Date(p.at)).toFixed(1)},${y(p.pct).toFixed(1)}`).join(" ")}" fill="none" stroke="${EMBER}" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+        svg += `<polygon points="${band("low90", "high90")}" fill="${MARK}" fill-opacity=".18"/>`;
+        svg += `<polygon points="${band("low50", "high50")}" fill="${MARK}" fill-opacity=".38"/>`;
+        svg += `<polyline points="${seq.map((p) => `${x(+new Date(p.at)).toFixed(1)},${y(p.pct).toFixed(1)}`).join(" ")}" fill="none" stroke="${MARK_INK}" stroke-width="1.5" stroke-dasharray="4 3"/>`;
       }
-      svg += `<polyline points="${points.map((p) => `${x(+new Date(p.at)).toFixed(1)},${y(p.pct).toFixed(1)}`).join(" ")}" fill="none" stroke="${DEEP}" stroke-width="2" stroke-linejoin="round"/>`;
+      svg += `<polyline points="${points.map((p) => `${x(+new Date(p.at)).toFixed(1)},${y(p.pct).toFixed(1)}`).join(" ")}" fill="none" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/>`;
       points.forEach((p) => {
-        svg += `<circle cx="${x(+new Date(p.at)).toFixed(1)}" cy="${y(p.pct).toFixed(1)}" r="${points.length > 25 ? 1.6 : 2.8}" fill="${DEEP}"/>`;
+        svg += `<circle cx="${x(+new Date(p.at)).toFixed(1)}" cy="${y(p.pct).toFixed(1)}" r="${points.length > 25 ? 1.6 : 2.8}" fill="${INK}"/>`;
       });
     }
     svg += `<rect class="hover-layer" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" fill="transparent"/>`;
@@ -150,9 +153,11 @@ const Charts = (() => {
   }
 
   /* One-hue sequential ramp, light to dark. */
-  const RAMP = ["#cde2fb", "#b7d3f6", "#9ec5f4", "#86b6ef", "#6da7ec", "#5598e7", "#3987e5", "#2a78d6", "#256abf", "#1c5cab", "#184f95", "#104281", "#0d366b"];
+  const RAMP = ["#e3edf3", "#d2e2eb", "#bfd5e2", "#a9c8da", "#93b9cf", "#7caac4", "#679bb9", "#538cad", "#427d9f", "#2f6f8f", "#28607c", "#204f66", "#17394b"];
   function heatColor(v) { return RAMP[Math.max(0, Math.min(RAMP.length - 1, Math.round((v / 100) * (RAMP.length - 1))))]; }
-  function heatInk(v) { return v >= 55 ? "#fff" : INK; }
+  /* Pick whichever text colour has more contrast on the cell, so labels stay readable at every step. */
+  const lum = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)).reduce((s, c, i) => s + c * [0.2126, 0.7152, 0.0722][i], 0);
+  function heatInk(v) { return lum(heatColor(v)) > 0.2 ? INK : PAPER; }
 
   function heatmap(rowsMeta, columns, valueOf, tipOf) {
     let html = `<div class="heat" style="grid-template-columns:minmax(120px,auto) repeat(${columns.length},minmax(30px,1fr))">`;
@@ -185,21 +190,26 @@ const Charts = (() => {
     return svg + `</svg>`;
   }
 
-  function rangeRow(row, opts = {}) {
-    const none = row.n_trials === 0;
-    const left = Math.max(0, row.low), width = Math.max(1, row.high - row.low);
-    const name = esc(row.name);
-    const track = `<div class="range-track" aria-hidden="true">
-        <div class="range-band ${none ? "none" : ""}" style="left:${left}%;width:${width}%"></div>
-        ${none ? "" : `<div class="range-dot" style="left:${row.pct}%"></div>`}
-      </div>`;
-    const val = none
+  /* The range scale used everywhere: band between brackets, index line at the estimate. */
+  const clamp = (v) => Math.max(0, Math.min(100, +v));
+  function scale(row, none = false) {
+    return `<div class="scale${none ? " none" : ""}" aria-hidden="true" style="--lo:${clamp(row.low)}%;--hi:${clamp(row.high)}%;--est:${clamp(row.pct)}%"><i class="scale-band"></i>${none ? "" : `<i class="scale-est"></i>`}</div>`;
+  }
+  function rangeVal(row, none = false) {
+    return none
       ? `<div class="range-val"><b>?</b><span>no evidence</span></div>`
-      : `<div class="range-val"><b>${fmt(row.pct)}%</b><span>${fmt(row.low)} to ${fmt(row.high)}</span></div>`;
-    const inner = `<div class="range-name">${name}<small>${esc(row.evidence || "")}</small></div>${track}${val}`;
-    if (opts.href) return `<a class="range-row" href="${opts.href}" aria-label="${name}: ${none ? "no evidence yet" : `about ${fmt(row.pct)} percent, range ${fmt(row.low)} to ${fmt(row.high)}`}">${inner}</a>`;
-    return `<div class="range-row">${inner}</div>`;
+      : `<div class="range-val"><b>${fmt(row.pct)}<small>%</small></b><span>${fmt(row.low)} to ${fmt(row.high)}</span></div>`;
   }
 
-  return { radar, bindRadar, progress, bindProgress, heatmap, bindHeat, shapeGrid, rangeRow, fmtDate, esc, fmt, showTip, hideTip };
+  function rangeRow(row, opts = {}) {
+    const none = row.n_trials === 0;
+    const name = esc(row.name);
+    const label = opts.compact ? "" : `<div class="range-name">${name}<small>${esc(row.evidence || "")}</small></div>`;
+    const inner = `${label}${scale(row, none)}${rangeVal(row, none)}`;
+    const cls = `range-row${opts.compact ? " compact" : ""}`;
+    if (opts.href) return `<a class="${cls}" href="${opts.href}" aria-label="${name}: ${none ? "no evidence yet" : `about ${fmt(row.pct)} percent, range ${fmt(row.low)} to ${fmt(row.high)}`}">${inner}</a>`;
+    return `<div class="${cls}">${inner}</div>`;
+  }
+
+  return { radar, bindRadar, progress, bindProgress, heatmap, bindHeat, shapeGrid, rangeRow, scale, rangeVal, fmtDate, esc, fmt, showTip, hideTip };
 })();

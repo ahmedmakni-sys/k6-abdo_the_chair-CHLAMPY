@@ -1,0 +1,92 @@
+/* AI4Brain design tokens. Direction: depth of field.
+   A lens marks the range that is in focus with a bracket on each side of the index.
+   Every estimate here is drawn the same way: a soft band, hard brackets, one index mark.
+   Change values here; app.css and charts.js only ever read these names. */
+
+@font-face {
+  font-family: "Jost";
+  src: url("/web/fonts/jost.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  src: url("/web/fonts/atkinson-hyperlegible-next.woff2") format("woff2");
+  font-weight: 200 800;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+
+  /* Colour. Contrast is measured against --porcelain and --paper. */
+  --porcelain: #f4f6f8;   /* page */
+  --paper: #ffffff;       /* surfaces */
+  --barrel: #1a1d21;      /* text, 15.6:1 */
+  --barrel-2: #46505b;    /* secondary text, 7.6:1 */
+  --barrel-3: #5c6670;    /* captions, 5.4:1 */
+  --hairline: #dce2e7;    /* dividers and surface edges, decorative only */
+  --control: #808a94;     /* borders of things you operate, 3:1 or more */
+  --glass: #2f6f8f;       /* actions, estimates, brackets, 5.1:1 */
+  --glass-deep: #245a75;  /* hover, pressed, focus ring */
+  --glass-line: #5e8fa8;  /* chart strokes on white, 3.5:1 */
+  --haze: #c9dce7;        /* the uncertainty band itself */
+  --haze-soft: #e3edf3;   /* selected and tinted surfaces */
+  --mark: #e2ae2a;        /* projections: what might happen, never what will */
+  --mark-soft: #fbf1d6;
+  --mark-ink: #7a5806;    /* text and lines on or near --mark, 5.4:1 */
+  --flag: #c23b2a;        /* errors and flawed steps */
+  --flag-soft: #fbe7e3;
+  --flag-ink: #a63222;
+  --ok: #2f7a4e;
+  --ok-soft: #e2f0e7;
+  --ok-ink: #2a6b45;
+  --violet: #6a5acd;      /* fourth series colour in the priority bars */
+
+  /* Type. Jost is the lens engraving: headings and every number.
+     Atkinson Hyperlegible Next carries reading. Sizes follow the classic scale. */
+  --font-display: "Jost", "Futura", "Century Gothic", "Segoe UI", sans-serif;
+  --font-body: "Atkinson Hyperlegible Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --t-12: .75rem;
+  --t-14: .875rem;
+  --t-16: 1rem;
+  --t-18: 1.125rem;
+  --t-21: 1.3125rem;
+  --t-24: 1.5rem;
+  --t-36: 2.25rem;
+  --t-48: 3rem;
+  --t-72: 4.5rem;
+  --lh-body: 1.55;
+  --lh-tight: 1.15;
+  --measure: 66ch;
+
+  /* Space: a 4px base, doubling past 16. */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+
+  /* Radii carry hierarchy: controls are tighter than the surfaces that hold them. */
+  --r-control: 4px;
+  --r-surface: 8px;
+  --r-pill: 999px;
+
+  /* Elevation is rare: only things that float above the page get a shadow. */
+  --shadow-float: 0 1px 2px rgba(26, 29, 33, .08), 0 8px 24px rgba(26, 29, 33, .12);
+
+  /* Motion: short, and only in answer to something. */
+  --dur-quick: 120ms;
+  --dur-move: 200ms;
+  --dur-focus: 240ms;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+
+  --rail-width: 212px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-quick: 0ms; --dur-move: 0ms; --dur-focus: 0ms; }
+}
