@@ -34,6 +34,15 @@ function renderRail(active) {
 
 function errorBox(err) { return `<div class="error" role="alert">${esc(err.message || err)}</div>`; }
 
+/* Marks a button as working while its request runs, so a slow reply never looks like a dead click.
+   Repeat clicks are ignored until the first one finishes. */
+async function busy(btn, work) {
+  if (!btn) return work();
+  if (btn.getAttribute("aria-busy") === "true") return undefined;
+  btn.setAttribute("aria-busy", "true");
+  try { return await work(); } finally { btn.removeAttribute("aria-busy"); }
+}
+
 function demoNote() {
   return state.me?.is_demo ? `<div class="demo-note">You are viewing sample data from a simulated learner. <a href="#/data">Delete it and start your own</a>.</div>` : "";
 }
@@ -242,7 +251,7 @@ function goalRows(goals, removable) {
     <div><b>${esc(g.name)}</b><div class="small muted">Target ${fmt(g.target_pct)}% by ${Charts.fmtDate(g.due_date)}</div></div>
     <div>${Charts.rangeRow({ name: g.name, pct: g.current_pct, low: g.low, high: g.high, n_trials: 1 }, { compact: true })}</div>
     <div class="small">${fmt(g.prob_reached * 100)}% probability reached</div>
-    <div class="row"><span class="chip ${cls[g.status]}">${icon[g.status]} ${esc(g.status)}</span>${removable ? `<button class="btn" data-del-goal="${g.id}">Remove</button>` : ""}</div>
+    <div class="row"><span class="chip ${cls[g.status]}">${icon[g.status]} ${esc(g.status)}</span>${removable ? `<button class="btn small" data-del-goal="${g.id}" aria-label="Remove goal for ${esc(g.name)}">Remove</button>` : ""}</div>
   </div>`).join("");
 }
 
@@ -465,19 +474,19 @@ async function renderPlan() {
     ${demoNote()}
     <div class="page-head"><h1>Plan and goals</h1><p class="lede">Version ${plan.version} of your plan. It updates after every session, and each step says why it's there.</p></div>
 
-    <section class="section" style="margin-top:0"><h2>Today</h2>
-      <div class="today">${today.sessions.map((s) => `<div class="plan-session">
+    <section class="section first"><h2>Today</h2>
+      <div class="today">${today.sessions.map((s, i) => `<div class="plan-session${i === 0 ? " next" : ""}">
         <div><h3>${esc(s.name)}: ${s.mode === "assess" ? "check-in" : `practice${s.level ? ` around level ${s.level}` : ""}`}</h3>
           <span class="small muted">About ${s.minutes} minutes</span>
           <ul>${s.why.map((w) => `<li>Because ${esc(w)}.</li>`).join("")}</ul>
-          <p class="small" style="margin:6px 0 0"><b>You'll know it worked when:</b> ${esc(s.success_measure)}</p></div>
-        <button class="btn primary" data-start="${s.dimension}" data-mode="${s.mode}">Start</button>
+          <p class="small worked"><b>You'll know it worked when:</b> ${esc(s.success_measure)}</p></div>
+        <button class="btn${i === 0 ? " primary" : ""}" data-start="${s.dimension}" data-mode="${s.mode}" aria-label="Start ${esc(s.name)}">Start</button>
       </div>`).join("")}</div>
     </section>
 
     <section class="section"><h2>This week</h2>
       <p class="sub">Sessions are spaced out and interleaved, so the same skill isn't repeated too soon.</p>
-      <div class="week">${plan.days.map((d) => `<div class="day"><b>${new Date(d.date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric" })}</b>${d.sessions.map((s) => `<div>${esc(s.name)}</div>`).join("")}</div>`).join("")}</div>
+      <div class="week">${plan.days.map((d, i) => `<div class="day${i === 0 ? " is-today" : ""}"><b>${new Date(d.date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric" })}</b>${d.sessions.map((s) => `<div>${esc(s.name)}</div>`).join("")}</div>`).join("")}</div>
     </section>
 
     <section class="section"><h2>Goals</h2>
@@ -498,28 +507,37 @@ async function renderPlan() {
 
     <section class="section"><h2>How priorities are worked out</h2>
       <p class="formula">priority = ${weights.goal_gap} goal gap + ${weights.uncertainty} uncertainty + ${weights.staleness} time since practice + ${weights.plateau} plateau</p>
-      <div class="legend" style="padding:8px 0"><span><i class="c-goal"></i>Goal gap</span><span><i class="c-unc"></i>Uncertainty</span><span><i class="c-stale"></i>Time since practice</span><span><i class="c-plat"></i>Plateau</span></div>
+      <div class="legend prio-legend"><span><i class="c-goal"></i>Goal gap</span><span><i class="c-unc"></i>Uncertainty</span><span><i class="c-stale"></i>Time since practice</span><span><i class="c-plat"></i>Plateau</span></div>
+      <p class="small muted">Bars are scaled to the highest priority, ${Math.max(...plan.ranked.map((r) => r.priority)).toFixed(2)}.</p>
       ${plan.ranked.map((r) => {
         const c = r.components;
-        const seg = (cls, key) => `<i class="${cls}" style="width:${weights[key] * c[key] * 100}%" title="${key}"></i>`;
+        const top = Math.max(...plan.ranked.map((x) => x.priority)) || 1;
+        const seg = (cls, key) => `<i class="${cls}" style="width:${(weights[key] * c[key] * 100) / top}%" title="${key}"></i>`;
         return `<div class="prio-row"><span>${esc(r.name)}</span><div class="prio-bar">${seg("c-goal", "goal_gap")}${seg("c-unc", "uncertainty")}${seg("c-stale", "staleness")}${seg("c-plat", "plateau")}</div><span class="num">${r.priority.toFixed(2)}</span></div>`;
       }).join("")}
     </section>
 
     <section class="section"><h2>What changed recently</h2>
-      ${history.slice(0, 5).map((h) => `<div style="margin-bottom:8px"><b>Version ${h.version}</b> <span class="small muted">${Charts.fmtDate(h.created_at)}</span><ul style="margin:2px 0 0;padding-left:18px">${h.changes.map((c) => `<li>${esc(c)}</li>`).join("")}</ul></div>`).join("")}
+      ${(() => {
+        const ver = (h) => `<div class="plan-version"><h3>Version ${h.version} <span class="small muted">${Charts.fmtDate(h.created_at)}</span></h3><ul>${h.changes.map((c) => `<li>${esc(c)}</li>`).join("")}</ul></div>`;
+        const recent = history.slice(0, 5);
+        return (recent[0] ? ver(recent[0]) : "") +
+          (recent.length > 1 ? `<details class="why earlier"><summary>Show earlier versions (${recent.length - 1})</summary>${recent.slice(1).map(ver).join("")}</details>` : "");
+      })()}
     </section>
   </div>`;
   bindStarters(main);
   document.getElementById("goal-form").onsubmit = async (e) => {
     e.preventDefault();
-    try {
-      await api("/api/goals", { method: "POST", body: { dimension: document.getElementById("g-dim").value, target_pct: +document.getElementById("g-target").value, due_date: document.getElementById("g-due").value + "T23:59:00+00:00" } });
-      renderPlan();
-    } catch (err) { document.getElementById("goal-err").innerHTML = errorBox(err); }
+    await busy(e.submitter, async () => {
+      try {
+        await api("/api/goals", { method: "POST", body: { dimension: document.getElementById("g-dim").value, target_pct: +document.getElementById("g-target").value, due_date: document.getElementById("g-due").value + "T23:59:00+00:00" } });
+        await renderPlan();
+      } catch (err) { document.getElementById("goal-err").innerHTML = errorBox(err); }
+    });
   };
   main.querySelectorAll("[data-del-goal]").forEach((b) => {
-    b.onclick = async () => { await api(`/api/goals/${b.dataset.delGoal}`, { method: "DELETE" }); renderPlan(); };
+    b.onclick = () => busy(b, async () => { await api(`/api/goals/${b.dataset.delGoal}`, { method: "DELETE" }); await renderPlan(); });
   });
 }
 

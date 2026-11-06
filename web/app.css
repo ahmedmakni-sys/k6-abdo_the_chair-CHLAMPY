@@ -290,16 +290,27 @@ textarea.ideas { width: min(560px, 100%); min-height: 180px; }
 .today { display: grid; gap: var(--s-3); }
 .plan-session { display: grid; grid-template-columns: 1fr auto; gap: var(--s-2) var(--s-4); padding: var(--s-4) var(--s-5); align-items: start; }
 .plan-session ul { margin: var(--s-1) 0 0; color: var(--barrel-2); font-size: var(--t-14); }
+.plan-session.next { border-color: var(--glass-line); box-shadow: inset 3px 0 0 var(--glass); }
+.plan-session .worked { margin: var(--s-2) 0 0; }
+.section.first { margin-top: 0; }
+.section h2 + .today, .section h2 + .week, .section h2 + #goals { margin-top: var(--s-3); }
+.week .day.is-today { border-color: var(--glass); box-shadow: inset 0 3px 0 var(--glass); }
+.prio-legend { margin: var(--s-3) 0 var(--s-1); }
+.plan-version h3 { font-size: var(--t-16); margin: var(--s-3) 0 var(--s-1); }
+.plan-version ul { margin: 0; }
+details.earlier { margin-top: var(--s-3); }
+details.earlier .plan-version { padding-left: var(--s-4); border-left: 1px solid var(--hairline); }
 .week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--s-2); }
 .week .day { background: var(--paper); border: 1px solid var(--hairline); border-radius: var(--r-surface); padding: var(--s-2) var(--s-3); font-size: var(--t-14); min-height: 96px; }
 .week .day b { font-family: var(--font-display); display: block; margin-bottom: var(--s-1); font-weight: 600; }
 .week .day div { padding: 2px 0; line-height: 1.25; }
 .prio-bar { display: flex; height: 12px; gap: 2px; border-radius: 2px; overflow: hidden; background: var(--porcelain); }
 .prio-bar i { display: block; height: 100%; }
-.c-goal { background: var(--glass); } .c-unc { background: var(--haze); } .c-stale { background: var(--mark); } .c-plat { background: var(--violet); }
+.c-goal { background: var(--glass); } .c-goal { background: var(--glass-deep); } .c-unc { background: var(--glass-line); } .c-stale { background: var(--mark); } .c-plat { background: var(--violet); }
 .prio-row { display: grid; grid-template-columns: 170px 1fr 48px; gap: var(--s-3); align-items: center; padding: var(--s-1) 0; font-size: var(--t-14); }
 .form-row { display: flex; gap: var(--s-3); flex-wrap: wrap; align-items: end; }
 .form-row label { display: flex; flex-direction: column; font-size: var(--t-14); gap: var(--s-1); color: var(--barrel-2); font-weight: 600; }
+.form-row input, .form-row select { font-size: var(--t-16); font-weight: 400; color: var(--barrel); }
 .formula { font-family: var(--font-display); background: var(--porcelain); border: 1px solid var(--hairline); border-radius: var(--r-control); padding: var(--s-2) var(--s-3); width: fit-content; max-width: 100%; }
 
 /* Coach */
@@ -371,6 +382,7 @@ textarea.ideas { width: min(560px, 100%); min-height: 180px; }
   .practice-row .scale { grid-column: 1 / -1; grid-row: 2; }
   .goal-row { grid-template-columns: 1fr auto; }
   .goal-row > :nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+  .goal-row > :nth-child(4) { grid-column: 1 / -1; justify-content: space-between; }
   .range-row { grid-template-columns: minmax(0, 1fr) 76px; }
   .range-row .scale { grid-column: 1 / -1; grid-row: 2; }
   .range-row.compact .scale { grid-column: auto; grid-row: auto; }
