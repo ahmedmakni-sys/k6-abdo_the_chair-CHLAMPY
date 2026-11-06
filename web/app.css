@@ -358,7 +358,27 @@ details.earlier .plan-version { padding-left: var(--s-4); border-left: 1px solid
 .ai-step .txt { flex: 1; }
 .ai-step.flawed-known { background: var(--flag-soft); border-radius: var(--r-control); padding: var(--s-2); }
 .ai-step.ok-known { background: var(--ok-soft); border-radius: var(--r-control); padding: var(--s-2); }
+.ai-step.flawed-known + .ai-step, .ai-step.ok-known + .ai-step { margin-top: var(--s-2); border-bottom: 0; }
 .ai-voice { border-left: 2px solid var(--glass-line); padding-left: var(--s-3); }
+.ai-step.flagged .txt { text-decoration: underline wavy var(--flag) 1px; text-underline-offset: 4px; }
+.btn.flag[aria-pressed="true"] { background: var(--flag-soft); border-color: var(--flag-ink); color: var(--flag-ink); box-shadow: inset 0 -3px 0 var(--flag); }
+.ai-suggestion { margin: var(--s-3) 0 0; }
+.lab-note { margin: var(--s-2) 0 0; padding: var(--s-2) var(--s-3); background: var(--porcelain); border-radius: var(--r-control); max-width: none; }
+.lab-actions { display: grid; gap: var(--s-2); margin-top: var(--s-4); padding-top: var(--s-4); border-top: 1px solid var(--hairline); }
+.lab-actions p { margin: var(--s-2) 0 0; }
+.free-q input { flex: 1; min-width: 0; }
+.lab-brief h2 { margin-bottom: var(--s-2); }
+.round-count { margin-bottom: var(--s-1); }
+.skip-ai { margin: var(--s-4) 0 0; display: flex; gap: var(--s-3); align-items: center; }
+.own-answer { background: var(--haze-soft); border-color: var(--haze); }
+.lab-step .options { max-width: none; margin-top: var(--s-3); }
+.lab-step h3 { margin-bottom: var(--s-1); }
+.lab-step h2 + p, .lab-step h3 + p { margin-top: 0; }
+@media (min-width: 901px) { #score { position: sticky; top: var(--s-5); } }
+.lab-step #next-round { margin-top: var(--s-3); }
+.score-head { display: flex; align-items: baseline; gap: var(--s-2); margin: var(--s-2) 0 var(--s-1); }
+.score-note { margin: var(--s-2) 0 0; }
+.comps { margin: var(--s-4) 0 var(--s-3); }
 .score-big { font-family: var(--font-display); font-size: var(--t-48); line-height: 1; font-weight: 500; }
 .comp-row { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(80px, 1.2fr) 44px; gap: var(--s-3); align-items: center; padding: var(--s-1) 0; font-size: var(--t-14); }
 .comp-bar { height: 10px; background: var(--porcelain); border-radius: 2px; overflow: hidden; }

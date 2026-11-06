@@ -643,9 +643,11 @@ function scorePanel(score) {
   const measured = score.rounds > 0;
   return `<div class="panel">
     <h2>AI collaboration score</h2>
-    ${measured ? `<div class="row" style="align-items:baseline;margin-top:6px"><span class="score-big">${fmt(score.score)}</span><span class="muted">of 100. Likely range ${fmt(score.low)} to ${fmt(score.high)}, from ${score.rounds} of ${score.total_rounds} rounds.</span></div>` : `<p class="muted" style="margin-top:6px">Play a round to get your first score. Scores are measured from what you do, not from what you say about yourself.</p>`}
-    <div style="margin-top:10px">${Object.values(score.components).map((c) => `<div class="comp-row"><span>${esc(c.name)} <span class="small muted">(${Math.round(c.weight * 100)}%)</span></span><div class="comp-bar"><i style="width:${c.score * 100}%"></i></div><span class="num">${c.observations ? fmt(c.score * 100) : "?"}</span></div>`).join("")}</div>
-    <p class="formula" style="margin-top:10px">Score = 100 x (0.20 C + 0.25 V + 0.20 I + 0.20 A + 0.15 R)</p>
+    ${measured ? `<div class="score-head"><span class="score-big">${fmt(score.score)}</span><span class="muted">of 100</span></div>
+      ${Charts.scale({ pct: score.score, low: score.low, high: score.high })}
+      <p class="small muted score-note">Likely range ${fmt(score.low)} to ${fmt(score.high)}, from ${score.rounds} of ${score.total_rounds} rounds.</p>` : `<p class="muted score-note">Play a round to get your first score. Scores are measured from what you do, not from what you say about yourself.</p>`}
+    <div class="comps">${Object.values(score.components).map((c) => `<div class="comp-row"><span>${esc(c.name)} <span class="small muted">(${Math.round(c.weight * 100)}%)</span></span><div class="comp-bar"><i style="width:${c.score * 100}%"></i></div><span class="num">${c.observations ? fmt(c.score * 100) : "?"}</span></div>`).join("")}</div>
+    <p class="formula">Score = 100 x (0.20 C + 0.25 V + 0.20 I + 0.20 A + 0.15 R)</p>
     ${measured ? `<p class="small muted">If the weights shifted, your score would stay between ${fmt(score.weight_low)} and ${fmt(score.weight_high)}. With equal weights it would be ${fmt(score.equal_weights_score)}.</p>` : ""}
     <p class="small muted" style="margin-bottom:0">${esc(score.note)}</p>
   </div>`;
@@ -677,22 +679,25 @@ function playRound(sc, played, total) {
   const optionButtons = (name, onPick) => `<div class="options">${sc.options.map((o, i) => `<button class="option" data-${name}="${i}">${esc(o)}</button>`).join("")}</div>`;
 
   function draw() {
-    let html = `<div class="lab-step"><div class="small muted">Round ${played + 1} of ${total}</div><h2>${esc(sc.title)}</h2><p style="margin-top:6px">${esc(sc.prompt)}</p></div>`;
+    let html = `<div class="lab-step lab-brief"><p class="small muted round-count">Round ${played + 1} of ${total}</p><h2>${esc(sc.title)}</h2><p>${esc(sc.prompt)}</p></div>`;
     if (!aiVisible) {
-      html += `<div class="lab-step"><h3>Your first answer</h3><p class="small muted">You can commit to your own answer before seeing what the AI says, or go straight to the AI.</p>${optionButtons("own")}<div style="margin-top:10px"><button class="btn" id="ask-ai">Ask the AI straight away</button></div></div>`;
+      html += `<div class="lab-step"><h3>Your first answer</h3><p class="small muted">You can commit to your own answer before seeing what the AI says, or go straight to the AI.</p>${optionButtons("own")}<p class="skip-ai"><span class="muted">or</span> <button class="btn small" id="ask-ai">Ask the AI straight away</button></p></div>`;
       box.innerHTML = html;
       box.querySelectorAll("[data-own]").forEach((b) => { b.onclick = () => { ev.own_answer = sc.options[+b.dataset.own]; aiVisible = true; draw(); }; });
       document.getElementById("ask-ai").onclick = () => { aiVisible = true; draw(); };
       return;
     }
-    if (ev.own_answer) html += `<div class="lab-step small">Your first answer: <b>${esc(ev.own_answer)}</b></div>`;
+    if (ev.own_answer) html += `<div class="lab-step small own-answer">Your first answer: <b>${esc(ev.own_answer)}</b></div>`;
     html += `<div class="lab-step"><h3>The AI's reasoning</h3><p class="small muted">Flag any step you think is wrong or unsupported.</p><div class="ai-voice">
-      ${steps.map((s, i) => `<div class="ai-step"><div class="txt">${esc(s.text)}</div>${s.fixed ? "" : `<button class="btn toggle" aria-pressed="${ev.flagged_steps.includes(i)}" data-flag="${i}">${ev.flagged_steps.includes(i) ? "Flagged" : "Flag"}</button>`}</div>`).join("")}
-      <p style="margin:10px 0 0"><b>AI's suggestion:</b> ${esc(conclusion)}</p></div>
-      ${notes.map((n) => `<p class="small" style="margin:8px 0 0">${esc(n)}</p>`).join("")}
-      <div class="row" style="margin-top:12px"><button class="btn" id="refine">Tell the AI to check this and try again</button></div>
-      <div style="margin-top:12px"><span class="small muted">Ask a clarifying question:</span><div class="row" style="margin-top:4px">${sc.clarifications.map((q, i) => `<button class="btn" data-clar="${i}" ${ev.clarifications.includes(i) ? "disabled" : ""}>${esc(q)}</button>`).join("")}</div>
-      <form class="row" id="free-q" style="margin-top:6px"><input id="free-q-in" class="word-input" style="flex:1;font-size:1rem;text-align:left;width:auto" maxlength="300" placeholder="Or type your own question" aria-label="Your own question"><button class="btn">Ask</button></form></div></div>`;
+      ${steps.map((s, i) => `<div class="ai-step${ev.flagged_steps.includes(i) ? " flagged" : ""}"><div class="txt">${esc(s.text)}</div>${s.fixed ? "" : `<button class="btn small toggle flag" aria-pressed="${ev.flagged_steps.includes(i)}" data-flag="${i}">${ev.flagged_steps.includes(i) ? "Flagged" : "Flag"}</button>`}</div>`).join("")}
+      <p class="ai-suggestion"><b>AI's suggestion:</b> ${esc(conclusion)}</p></div>
+      ${notes.map((n) => `<p class="small lab-note">${esc(n)}</p>`).join("")}
+      <div class="lab-actions">
+        <div class="row"><button class="btn small" id="refine">Tell the AI to check this and try again</button></div>
+        <p class="small muted">Ask a clarifying question:</p>
+        <div class="row">${sc.clarifications.map((q, i) => `<button class="btn small" data-clar="${i}" ${ev.clarifications.includes(i) ? "disabled" : ""}>${esc(q)}</button>`).join("")}</div>
+        <form class="row free-q" id="free-q"><input id="free-q-in" maxlength="300" placeholder="Or type your own question" aria-label="Your own question"><button class="btn small">Ask</button></form>
+      </div></div>`;
     if (sc.responsible) {
       html += `<div class="lab-step"><h3>Using this responsibly</h3><p>${esc(sc.responsible.q)}</p><div class="options">${sc.responsible.options.map((o, i) => `<button class="option" aria-pressed="${ev.responsible_choice === o}" data-resp="${i}">${esc(o)}</button>`).join("")}</div></div>`;
     }
@@ -705,30 +710,33 @@ function playRound(sc, played, total) {
         draw();
       };
     });
-    document.getElementById("refine").onclick = async () => {
+    const refineBtn = document.getElementById("refine");
+    refineBtn.onclick = () => busy(refineBtn, async () => {
       ev.refine_count += 1;
       const r = await api("/api/collab/refine", { method: "POST", body: { scenario_id: sc.id } });
       notes.push(`AI, after checking: ${r.note} ${r.steps.join(" ")} Suggestion now: ${r.conclusion}.`);
       conclusion = r.conclusion;
       draw();
-    };
+    });
     box.querySelectorAll("[data-clar]").forEach((b) => {
-      b.onclick = async () => {
+      b.onclick = () => busy(b, async () => {
         const i = +b.dataset.clar;
         ev.clarifications.push(i);
         const r = await api("/api/collab/clarify", { method: "POST", body: { scenario_id: sc.id, index: i } });
         notes.push(`You asked: ${sc.clarifications[i]} AI: ${r.answer}`);
         draw();
-      };
+      });
     });
-    document.getElementById("free-q").onsubmit = async (e) => {
+    document.getElementById("free-q").onsubmit = (e) => {
       e.preventDefault();
-      const text = document.getElementById("free-q-in").value.trim();
-      if (!text) return;
-      ev.free_questions.push(text);
-      const r = await api("/api/collab/clarify", { method: "POST", body: { scenario_id: sc.id } });
-      notes.push(`You asked: ${text} AI: ${r.answer}`);
-      draw();
+      busy(e.submitter, async () => {
+        const text = document.getElementById("free-q-in").value.trim();
+        if (!text) return;
+        ev.free_questions.push(text);
+        const r = await api("/api/collab/clarify", { method: "POST", body: { scenario_id: sc.id } });
+        notes.push(`You asked: ${text} AI: ${r.answer}`);
+        draw();
+      });
     };
     box.querySelectorAll("[data-resp]").forEach((b) => {
       b.onclick = () => { ev.responsible_choice = sc.responsible.options[+b.dataset.resp]; draw(); };
@@ -742,9 +750,11 @@ function playRound(sc, played, total) {
           return;
         }
         ev.final_answer = sc.options[+b.dataset.final];
-        const r = await api("/api/collab/round", { method: "POST", body: { scenario_id: sc.id, events: ev } });
-        document.getElementById("score").innerHTML = scorePanel(r.score);
-        debrief(r.debrief);
+        await busy(b, async () => {
+          const r = await api("/api/collab/round", { method: "POST", body: { scenario_id: sc.id, events: ev } });
+          document.getElementById("score").innerHTML = scorePanel(r.score);
+          debrief(r.debrief);
+        });
       };
     });
   }
@@ -758,8 +768,8 @@ function playRound(sc, played, total) {
     if (d.personal_data?.length) parts.push("You typed personal details into a question. It's safer to leave those out.");
     box.innerHTML = `<div class="lab-step"><h2>${d.final_correct ? "✓ Good final answer" : "✗ Not the strongest answer"}</h2>
       <p>${d.final_correct ? "" : `A stronger answer: ${esc(d.correct)}. `}${esc(parts.join(" "))}</p>
-      ${d.steps.map((s) => `<div class="ai-step ${s.flawed ? "flawed-known" : "ok-known"}" style="margin-bottom:6px"><div class="txt">${s.flawed ? "✗" : "✓"} ${esc(s.text)}${s.why ? `<div class="small">${esc(s.why)}</div>` : ""}</div>${s.flagged ? `<span class="chip quiet">you flagged this</span>` : ""}</div>`).join("")}
-      <button class="btn primary" id="next-round" style="margin-top:8px">Next round</button></div>`;
+      ${d.steps.map((s) => `<div class="ai-step ${s.flawed ? "flawed-known" : "ok-known"}"><div class="txt">${s.flawed ? "✗" : "✓"} ${esc(s.text)}${s.why ? `<div class="small">${esc(s.why)}</div>` : ""}</div>${s.flagged ? `<span class="chip quiet">you flagged this</span>` : ""}</div>`).join("")}
+      <button class="btn primary" id="next-round">Next round</button></div>`;
     document.getElementById("next-round").onclick = renderLab;
     document.getElementById("next-round").focus();
   }
