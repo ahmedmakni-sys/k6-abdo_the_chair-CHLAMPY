@@ -330,8 +330,16 @@ details.earlier .plan-version { padding-left: var(--s-4); border-left: 1px solid
 
 /* Coach */
 .coach-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: var(--s-5); align-items: start; }
-.chat { display: flex; flex-direction: column; height: min(66vh, 620px); min-height: 420px; }
-.chat-log { flex: 1; overflow-y: auto; padding: var(--s-4); display: flex; flex-direction: column; gap: var(--s-3); }
+/* The chat grows with the conversation up to a cap, so a new chat has no empty void. */
+.chat { display: flex; flex-direction: column; max-height: min(72vh, 680px); }
+.chat-log { flex: 1; min-height: 160px; overflow-y: auto; padding: var(--s-4); display: flex; flex-direction: column; gap: var(--s-3); }
+.msg.pending { color: var(--barrel-3); font-style: italic; }
+.msg details.why { margin-top: var(--s-1); }
+.msg.user details.why summary { color: inherit; }
+.voice-row { margin-bottom: var(--s-4); }
+.notes-head { margin-bottom: var(--s-3); }
+.coach-grid .insights { grid-template-columns: 1fr; }
+.coach-limits { margin-top: var(--s-4); }
 .msg { max-width: 86%; padding: var(--s-2) var(--s-3); border-radius: var(--r-surface); }
 .msg.user { align-self: flex-end; background: var(--glass); color: var(--paper); }
 .msg.assistant { align-self: flex-start; background: var(--porcelain); }
@@ -402,6 +410,9 @@ details.earlier .plan-version { padding-left: var(--s-4); border-left: 1px solid
   .range-row .scale { grid-column: 1 / -1; grid-row: 2; }
   .range-row.compact .scale { grid-column: auto; grid-row: auto; }
   .options.shapes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .prompt-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .prompt-chips button { flex: none; }
+  .msg { max-width: 92%; }
   .stimulus.huge { font-size: 3.6rem; }
   .prio-row { grid-template-columns: 110px 1fr 40px; }
   .stage { padding: var(--s-5) var(--s-4); }

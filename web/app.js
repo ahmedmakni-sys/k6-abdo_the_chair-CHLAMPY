@@ -30,6 +30,9 @@ function renderRail(active) {
   rail.innerHTML = `<div class="brand">${LOGO}<span>AI4Brain</span></div><div class="rail-links">` +
     links.map(([h, t]) => `<a href="${h}" ${h === active ? 'aria-current="page"' : ""}>${t}</a>`).join("") +
     `</div><div class="rail-foot">Practice tool only. It says nothing about your health.</div>`;
+  /* On phones the menu is one sideways row; keep the current page in view. */
+  const strip = rail.querySelector(".rail-links"), cur = strip.querySelector("[aria-current]");
+  if (cur && strip.scrollWidth > strip.clientWidth) strip.scrollLeft = cur.offsetLeft - (strip.clientWidth - cur.offsetWidth) / 2;
 }
 
 function errorBox(err) { return `<div class="error" role="alert">${esc(err.message || err)}</div>`; }
@@ -589,10 +592,10 @@ async function renderCoach() {
         </form>
       </div>
       <div>
-        ${hasTts ? `<div class="row" style="margin-bottom:14px"><button class="btn toggle" id="voice" aria-pressed="${state.voiceOn}" ${voiceAllowed ? "" : "disabled"}>Read replies aloud</button>${voiceAllowed ? "" : `<span class="small muted">Turn on voice under <a href="#/data">My data</a> first.</span>`}</div>` : ""}
-        <h2 style="margin-bottom:8px">Notes for you</h2>
-        <div class="insights">${t.insights.map(insightHtml).join("") || `<p class="muted">Nothing yet.</p>`}</div>
-        <p class="small muted" style="margin-top:14px">Coach limits: no health judgements, no promises about the future, and only numbers from your own results. Voice is processed by your browser, and no voice data reaches this app's server.</p>
+        ${hasTts ? `<div class="row voice-row"><button class="btn small toggle" id="voice" aria-pressed="${state.voiceOn}" ${voiceAllowed ? "" : "disabled"}>Read replies aloud</button>${voiceAllowed ? "" : `<span class="small muted">Turn on voice under <a href="#/data">My data</a> first.</span>`}</div>` : ""}
+        <h2 class="notes-head">Notes for you</h2>
+        <div class="insights">${t.insights.map(insightHtml).join("") || `<p class="muted">No notes yet. They appear after your first check-in.</p>`}</div>
+        <p class="small muted coach-limits">Coach limits: no health judgements, no promises about the future, and only numbers from your own results. Voice is processed by your browser, and no voice data reaches this app's server.</p>
       </div>
     </div>
   </div>`;
@@ -600,18 +603,25 @@ async function renderCoach() {
   const log = document.getElementById("log");
   log.scrollTop = log.scrollHeight;
   const input = document.getElementById("chat-in");
-  const send = async (text) => {
+  const sendBtn = document.querySelector("#chat-form [type=submit]");
+  const send = (text) => busy(sendBtn, async () => {
     if (!text.trim()) return;
     log.insertAdjacentHTML("beforeend", msgHtml({ role: "user", text }));
     input.value = "";
+    /* A placeholder reply shows the coach is working; it is replaced by the answer or an error. */
+    log.insertAdjacentHTML("beforeend", `<div class="msg assistant pending" role="status">Checking your results</div>`);
     log.scrollTop = log.scrollHeight;
     try {
       const r = await api("/api/coach", { method: "POST", body: { text } });
+      log.querySelector(".pending")?.remove();
       log.insertAdjacentHTML("beforeend", msgHtml({ role: "assistant", text: r.reply, meta: { source: r.source }, evidence: r.evidence }));
       speak(r.reply);
-    } catch (err) { log.insertAdjacentHTML("beforeend", errorBox(err)); }
+    } catch (err) {
+      log.querySelector(".pending")?.remove();
+      log.insertAdjacentHTML("beforeend", errorBox(err));
+    }
     log.scrollTop = log.scrollHeight;
-  };
+  });
   document.getElementById("chat-form").onsubmit = (e) => { e.preventDefault(); send(input.value); };
   main.querySelectorAll("[data-q]").forEach((b) => { b.onclick = () => send(b.dataset.q); });
   const v = document.getElementById("voice");
