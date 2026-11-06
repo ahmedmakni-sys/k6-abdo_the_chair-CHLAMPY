@@ -234,7 +234,13 @@ table.data td.n, table.data th.n { text-align: right; }
 
 /* Session runner */
 .runner { max-width: 760px; margin: 0 auto; }
-.runner-top { display: flex; justify-content: space-between; align-items: center; gap: var(--s-4); margin-bottom: var(--s-3); }
+.runner-top { display: flex; justify-content: space-between; align-items: center; gap: var(--s-4); margin-bottom: var(--s-4); }
+.runner-title { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; min-width: 0; }
+.runner-title h1 { font-size: var(--t-24); }
+.runner-top .btn, .practice-actions .btn { white-space: nowrap; }
+.brand-mark svg { display: block; width: 22px; height: 22px; }
+.runner .stage h2 { font-size: var(--t-24); }
+.mcq-prompt.big, .stimulus { font-weight: 500; }
 .progress { height: 4px; background: var(--hairline); border-radius: 2px; overflow: hidden; margin-bottom: var(--s-4); }
 .progress > div { height: 100%; background: var(--glass); transition: width var(--dur-move) var(--ease); }
 .stage { padding: var(--s-6) var(--s-5); min-height: 360px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--s-4); }
@@ -351,6 +357,9 @@ textarea.ideas { width: min(560px, 100%); min-height: 180px; }
   h1 { font-size: 1.875rem; }
   .panel { padding: var(--s-4); }
   .btn { min-height: 44px; }
+  .btn.small { min-height: 40px; }
+  .mcq-prompt.big { font-size: var(--t-24); }
+  .stimulus { font-size: 2rem; }
   .twin-hero, .coach-grid, .lab-grid, .welcome { grid-template-columns: minmax(0, 1fr); }
   .welcome { min-height: 0; gap: var(--s-5); }
   .welcome h1 { font-size: 2.25rem; }

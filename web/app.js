@@ -301,13 +301,13 @@ async function renderPractice() {
     <div class="page-head"><h1>Practice</h1><p class="lede">A check-in measures where you are. Practising picks a level you'd get right about 8 times in 10.</p></div>
     <div class="mood" role="group" aria-label="How are you feeling?">
       <span>How are you feeling? It's optional, and it only changes pacing.</span>
-      ${moods.map(([k, l]) => `<button class="btn toggle" aria-pressed="${state.mood === k}" data-mood="${k}">${l}</button>`).join("")}
+      ${moods.map(([k, l]) => `<button class="btn small toggle" aria-pressed="${state.mood === k}" data-mood="${k}">${l}</button>`).join("")}
     </div>
     <div class="practice-list">${t.profile.map((d) => `<div class="practice-row">
       <div><b>${esc(d.name)}</b><div class="plain">${esc(d.plain)}</div></div>
       ${Charts.scale(d, !d.n_trials)}
       ${Charts.rangeVal(d, !d.n_trials)}
-      <div class="row"><button class="btn primary" data-start="${d.key}" data-mode="assess">Check in</button><button class="btn" data-start="${d.key}" data-mode="train">Practise</button></div>
+      <div class="row practice-actions"><button class="btn small" data-start="${d.key}" data-mode="assess" aria-label="Check in: ${esc(d.name)}">Check in</button><button class="btn small" data-start="${d.key}" data-mode="train" aria-label="Practise: ${esc(d.name)}">Practise</button></div>
     </div>`).join("")}</div>
   </div>`;
   bindStarters(main);
@@ -324,12 +324,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let activeRun = 0;
 
 async function runSession(dimension, mode) {
-  renderRail("#/practice");
+  /* A session takes the whole screen; "End session" is the way out, so results are always saved. */
+  rail.hidden = true;
   const runId = ++activeRun;
   const dimInfo = state.meta.dimensions.find((d) => d.key === dimension);
   const started = await api("/api/session", { method: "POST", body: { dimension, mode, mood: state.mood } });
   main.innerHTML = `<div class="page runner">
-    <div class="runner-top"><h2>${esc(dimInfo.name)}: ${mode === "assess" ? "check-in" : "practice"}</h2><button class="btn" id="stop">End session</button></div>
+    <div class="runner-top"><div class="runner-title"><span class="brand-mark">${LOGO}</span><h1>${esc(dimInfo.name)}</h1><span class="chip quiet">${mode === "assess" ? "Check-in" : "Practice"}</span></div><button class="btn small" id="stop">End session</button></div>
     <div class="progress"><div id="bar" style="width:0"></div></div>
     <div class="stage" id="stage"></div>
     <div class="live-band" id="live" ${mode === "assess" ? "" : "hidden"}></div>
@@ -414,6 +415,7 @@ async function askEstimate(sessionId, dimInfo, count) {
 
 async function showSummary(sessionId, estimate, dimInfo) {
   const r = await api(`/api/session/${sessionId}/finish`, { method: "POST", body: { self_estimate: estimate } });
+  renderRail("#/practice");
   const s = r.summary, st = s.stats;
   const nameOf = (k) => state.meta.dimensions.find((d) => d.key === k).name;
   if (!st.n) { location.hash = "#/practice"; return; }
