@@ -784,21 +784,21 @@ async function renderData() {
   main.innerHTML = `<div class="page">
     ${demoNote()}
     <div class="page-head"><h1>My data</h1><p class="lede">You control what's kept, for how long, and when it goes.</p></div>
-    <div class="docs-grid">
+    <div class="data-grid">
       <div class="panel"><h2>What's stored</h2><p>Your answers, response times, confidence ratings, session summaries, goals and chats with the coach. It is all kept in a local database, against a random ID. There's no name, no email and no account.</p>
         <p>Never collected: camera, microphone recordings, voice prints, face data or location.</p></div>
       <div class="panel"><h2>Choices</h2>
-        <div class="consent" style="border:0;padding:0;background:none;margin:0">
-          <label><input type="checkbox" id="d-llm" ${me.consent.llm ? "checked" : ""}> <span>Let Claude write coaching messages. It receives summary numbers and your question, with personal details removed. ${state.meta.llm_configured ? "" : "No API key is set on this server, so this has no effect for now."}</span></label>
+        <div class="choices-list">
+          <label><input type="checkbox" id="d-llm" ${me.consent.llm ? "checked" : ""}> <span>Let Claude write coaching messages. It receives summary numbers and your question, with personal details removed. ${state.meta.llm_configured ? "" : `<span class="muted">No API key is set on this server, so this has no effect for now.</span>`}</span></label>
           <label><input type="checkbox" id="d-voice" ${me.consent.voice ? "checked" : ""}> <span>Allow voice coaching, handled in the browser.</span></label>
-          <label style="align-items:center"><span>Delete my data after</span><select id="d-ret" aria-label="Delete my data after">${[30, 90, 180, 365].map((d) => `<option value="${d}" ${d === me.retention_days ? "selected" : ""}>${d === 365 ? "1 year" : d + " days"} idle</option>`).join("")}</select></label>
+          <label class="retention"><span>Delete my data after</span><select id="d-ret" aria-label="Delete my data after">${[30, 90, 180, 365].map((d) => `<option value="${d}" ${d === me.retention_days ? "selected" : ""}>${d === 365 ? "1 year" : d + " days"} idle</option>`).join("")}</select></label>
         </div>
-        <p class="small muted" id="saved" role="status" style="margin:6px 0 0">Consent given ${Charts.fmtDate(me.consent.accepted_at)}.</p>
+        <p class="small muted saved" id="saved" role="status">Consent given ${Charts.fmtDate(me.consent.accepted_at)}.</p>
       </div>
       <div class="panel"><h2>Take it with you</h2><p>Download everything held about you as a JSON file.</p><button class="btn primary" id="export">Download my data</button></div>
-      <div class="panel"><h2>Delete everything</h2><p>This removes your profile, history, plans and chats from the database for good. It can't be undone.</p>
+      <div class="panel danger-zone"><h2>Delete everything</h2><p>This removes your profile, history, plans and chats from the database for good. It can't be undone.</p>
         <button class="btn danger" id="del">Delete my data</button>
-        <div id="del-confirm" hidden style="margin-top:10px"><p><b>Delete all your data permanently?</b></p><div class="row"><button class="btn danger" id="del-yes">Yes, delete everything</button><button class="btn" id="del-no">Keep my data</button></div></div>
+        <div id="del-confirm" class="del-confirm" hidden><p><b>Delete all your data permanently?</b></p><div class="row"><button class="btn danger" id="del-yes">Yes, delete everything</button><button class="btn" id="del-no">Keep my data</button></div></div>
       </div>
     </div>
 
@@ -812,13 +812,20 @@ async function renderData() {
     </section>
   </div>`;
   const save = async (patch) => {
-    await api("/api/consent", { method: "POST", body: patch });
-    document.getElementById("saved").textContent = "Saved.";
+    const status = document.getElementById("saved");
+    status.textContent = "Saving";
+    try {
+      await api("/api/consent", { method: "POST", body: patch });
+      status.textContent = "Saved.";
+    } catch (err) {
+      status.textContent = `Not saved: ${err.message}. Try the change again.`;
+    }
   };
   document.getElementById("d-llm").onchange = (e) => save({ llm: e.target.checked });
   document.getElementById("d-voice").onchange = (e) => save({ voice: e.target.checked });
   document.getElementById("d-ret").onchange = (e) => save({ retention_days: +e.target.value });
-  document.getElementById("export").onclick = async () => {
+  const exportBtn = document.getElementById("export");
+  exportBtn.onclick = () => busy(exportBtn, async () => {
     const data = await api("/api/export");
     const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
     const a = document.createElement("a");
@@ -826,15 +833,17 @@ async function renderData() {
     a.download = "ai4brain-my-data.json";
     a.click();
     URL.revokeObjectURL(url);
-  };
-  document.getElementById("del").onclick = () => { document.getElementById("del-confirm").hidden = false; document.getElementById("del-yes").focus(); };
-  document.getElementById("del-no").onclick = () => { document.getElementById("del-confirm").hidden = true; };
-  document.getElementById("del-yes").onclick = async () => {
+  });
+  const delBtn = document.getElementById("del");
+  delBtn.onclick = () => { document.getElementById("del-confirm").hidden = false; delBtn.hidden = true; document.getElementById("del-yes").focus(); };
+  document.getElementById("del-no").onclick = () => { document.getElementById("del-confirm").hidden = true; delBtn.hidden = false; delBtn.focus(); };
+  const yesBtn = document.getElementById("del-yes");
+  yesBtn.onclick = () => busy(yesBtn, async () => {
     await api("/api/delete", { method: "POST", body: { confirm: "delete" } });
     store.del("profile");
     state.me = null;
     location.hash = "";
-  };
+  });
 }
 
 /* ---------- router ---------- */
