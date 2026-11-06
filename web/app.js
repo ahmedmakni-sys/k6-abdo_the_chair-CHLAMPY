@@ -262,17 +262,20 @@ async function renderSkill(key) {
   const info = d.info, s = d.state;
   main.innerHTML = `<div class="page">
     ${demoNote()}
-    <p><a href="#/twin">Back to your twin</a></p>
+    <p class="back"><a href="#/twin">Back to your twin</a></p>
     <div class="page-head"><h1>${esc(info.name)}</h1><p class="lede">${esc(info.plain)}</p></div>
-    <div class="panel">${Charts.rangeRow(s)}
-      <div class="row" style="margin-top:10px">
-        <button class="btn primary" data-start="${key}" data-mode="assess">Check in</button>
-        <button class="btn" data-start="${key}" data-mode="train">Practise at my level</button>
+    <div class="panel skill-now">${Charts.rangeRow({ ...s, name: info.name }, { compact: true })}
+      <div class="row skill-now-foot">
+        <span class="small muted">${esc(s.evidence || (s.n_trials ? `${s.n_trials} items` : "Not measured yet"))}</span>
+        <div class="row">
+          <button class="btn primary" data-start="${key}" data-mode="assess">Check in</button>
+          <button class="btn" data-start="${key}" data-mode="train">Practise at my level</button>
+        </div>
       </div>
     </div>
 
     <section class="section"><h2>How this has moved</h2>
-      <div class="sm chart" id="big-curve">${d.history.length ? Charts.progress(d.history, { projection: d.projection, width: 720, height: 240, label: `${info.name} progress` }) : `<p class="muted">No check-ins yet.</p>`}</div>
+      <div class="sm chart" id="big-curve">${d.history.length ? "" : `<p class="muted">No check-ins yet. Your first check-in draws the first point here.</p>`}</div>
       ${d.projection.available
         ? `<p class="small muted" style="margin-top:6px">${esc(d.projection.wording)} Chance the underlying trend is upward: ${fmt(d.projection.prob_growing * 100)}%.</p>`
         : `<p class="small muted" style="margin-top:6px">No projection yet. ${esc(d.projection.reason)}</p>`}
@@ -280,11 +283,11 @@ async function renderSkill(key) {
 
     <section class="section"><h2>Why the estimate is where it is</h2>
       <p class="sub">These items moved it most. Items answered too fast, or while the window lost focus, count for less.</p>
-      ${d.moved.length ? `<table class="data"><thead><tr><th>Task</th><th>Level</th><th>Result</th><th>Time</th><th>Weight</th><th>Moved estimate</th></tr></thead><tbody>${d.moved.map((m) => `<tr><td>${esc(taskName(info, m.task))}</td><td>${m.level}</td><td>${m.correct ? "✓ Right" : "✗ Missed"}</td><td>${m.rt_ms ? (m.rt_ms / 1000).toFixed(1) + " s" : "no response"}</td><td>${m.weight}</td><td>${m.moved > 0 ? "+" : ""}${m.moved} points</td></tr>`).join("")}</tbody></table>` : `<p class="muted">No items answered yet.</p>`}
+      ${d.moved.length ? `<table class="data"><thead><tr><th>Task</th><th class="n">Level</th><th>Result</th><th class="n">Time</th><th class="n">Weight</th><th class="n">Moved estimate</th></tr></thead><tbody>${d.moved.map((m) => `<tr><td>${esc(taskName(info, m.task))}</td><td class="n">${m.level}</td><td class="${m.correct ? "res-ok" : "res-no"}">${m.correct ? "✓ Right" : "✗ Missed"}</td><td class="n">${m.rt_ms ? (m.rt_ms / 1000).toFixed(1) + " s" : "no response"}</td><td class="n">${m.weight}</td><td class="n moved ${m.moved > 0 ? "up" : "down"}">${m.moved > 0 ? "+" : ""}${m.moved} points</td></tr>`).join("")}</tbody></table>` : `<p class="muted">No items answered yet.</p>`}
     </section>
 
     <section class="section"><h2>What this measures, and its limits</h2>
-      <div class="docs-grid">
+      <div class="docs-grid limits">
         <div><h3>Definition</h3><p>${esc(info.definition)}</p></div>
         <div><h3>Tasks</h3><ul style="margin:0;padding-left:18px">${info.tasks.map((x) => `<li><b>${esc(x.name)}.</b> ${esc(x.how)}</li>`).join("")}</ul></div>
         <div><h3>Scoring</h3><p>${esc(info.scoring)}</p></div>
@@ -295,7 +298,11 @@ async function renderSkill(key) {
   </div>`;
   bindStarters(main);
   const cv = document.getElementById("big-curve");
-  if (d.history.length) Charts.bindProgress(cv, d.history, { projection: d.projection, width: 720 });
+  if (d.history.length) {
+    const width = Math.max(280, cv.clientWidth - 32);
+    cv.innerHTML = Charts.progress(d.history, { projection: d.projection, width, height: width < 500 ? 200 : 260, label: `${info.name} progress` });
+    Charts.bindProgress(cv, d.history, { projection: d.projection, width });
+  }
 }
 const taskName = (info, key) => info.tasks.find((t) => t.key === key)?.name || key;
 
@@ -446,7 +453,7 @@ async function showSummary(sessionId, estimate, dimInfo) {
         <div class="before-after"><span class="small muted">After</span>${track(c.after)}<span class="range-val"><b>${fmt(c.after.pct)}%</b> <span>${fmt(c.after.low)} to ${fmt(c.after.high)}</span></span></div></div>`).join("")}</div>
     </section>
 
-    ${s.top_evidence?.length ? `<section class="section"><h2>Why it moved</h2><table class="data"><thead><tr><th>Item</th><th>Level</th><th>Result</th><th>Weight</th><th>Effect</th></tr></thead><tbody>${s.top_evidence.map((t) => `<tr><td>${esc((t.prompt || t.task).slice(0, 60))}</td><td>${t.level}</td><td>${t.correct ? "✓ Right" : "✗ Missed"}</td><td>${t.weight}</td><td>${t.moved > 0 ? "+" : ""}${t.moved} points</td></tr>`).join("")}</tbody></table></section>` : ""}
+    ${s.top_evidence?.length ? `<section class="section"><h2>Why it moved</h2><table class="data"><thead><tr><th>Item</th><th class="n">Level</th><th>Result</th><th class="n">Weight</th><th class="n">Effect</th></tr></thead><tbody>${s.top_evidence.map((t) => `<tr><td>${esc((t.prompt || t.task).slice(0, 60))}</td><td class="n">${t.level}</td><td class="${t.correct ? "res-ok" : "res-no"}">${t.correct ? "✓ Right" : "✗ Missed"}</td><td class="n">${t.weight}</td><td class="n moved ${t.moved > 0 ? "up" : "down"}">${t.moved > 0 ? "+" : ""}${t.moved} points</td></tr>`).join("")}</tbody></table></section>` : ""}
 
     ${s.state_proxy.state !== "steady" ? `<section class="section"><div class="insight attention"><h3>That looked hard going</h3><p>I noticed ${esc(s.state_proxy.signals.join("; "))}. I'll ease the next session a little. ${esc(s.state_proxy.effect)}</p></div></section>` : ""}
 

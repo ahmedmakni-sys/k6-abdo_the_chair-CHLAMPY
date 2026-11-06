@@ -226,6 +226,21 @@ table.data td.n, table.data th.n { text-align: right; }
 .heat-legend .ramp { width: 160px; height: 10px; border-radius: 2px; background: linear-gradient(90deg, #e3edf3, #a9c8da, #5e8fa8, #2f6f8f, #17394b); }
 .goal-row { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(160px, 1.5fr) auto auto; gap: var(--s-4); align-items: center; padding: var(--s-3) 0; border-bottom: 1px solid var(--hairline); }
 
+/* Skill detail */
+.back { font-size: var(--t-14); margin-bottom: var(--s-3); }
+.skill-now .range-row.compact { grid-template-columns: minmax(0, 1fr) 96px; }
+.skill-now .range-val b { font-size: var(--t-36); }
+.skill-now-foot { justify-content: space-between; margin-top: var(--s-4); }
+.skill-now-foot > span { display: inline-block; }
+.skill-now-foot > span::first-letter { text-transform: uppercase; }
+.docs-grid.limits { grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: var(--s-5) var(--s-6); }
+#big-curve { padding: var(--s-4); }
+table.data td.res-ok { color: var(--ok-ink); }
+table.data td.res-no { color: var(--flag-ink); }
+table.data td.moved { font-family: var(--font-display); font-size: var(--t-16); }
+table.data td.moved.up { color: var(--ok-ink); }
+table.data td.moved.down { color: var(--flag-ink); }
+
 /* Practice */
 .practice-list { display: grid; }
 .practice-row { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(120px, 1.1fr) 88px auto; gap: var(--s-4); align-items: center; padding: var(--s-3) var(--s-2); border-bottom: 1px solid var(--hairline); }
