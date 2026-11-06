@@ -104,10 +104,8 @@ function insightHtml(i) {
   return `<div class="insight ${["state", "uncertain", "stale"].includes(i.kind) ? "attention" : ""}">
     <h3>${esc(i.title)}</h3>
     <p>${esc(i.message)}</p>
-    <div class="row" style="justify-content:space-between">
-      <details class="why"><summary>Why I'm saying this (${esc(i.certainty.label)})</summary><ul>${i.because.map((b) => `<li>${esc(b)}</li>`).join("")}<li>${esc(i.certainty.basis)}</li></ul></details>
-      ${action}
-    </div>
+    <details class="why"><summary>Why I'm saying this (${esc(i.certainty.label)})</summary><ul>${i.because.map((b) => `<li>${esc(b)}</li>`).join("")}<li>${esc(i.certainty.basis)}</li></ul></details>
+    ${action ? `<div class="insight-action">${action}</div>` : ""}
   </div>`;
 }
 
@@ -122,7 +120,7 @@ function bindStarters(root) {
 
 async function renderTwin() {
   renderRail("#/twin");
-  main.innerHTML = `<div class="page"><p class="muted">Loading your twin</p></div>`;
+  main.innerHTML = `<div class="page"><p class="loading" role="status">Loading your twin</p></div>`;
   const t = await api("/api/twin");
   state.twin = t;
   const allTimes = Object.values(t.history).flat().map((p) => +new Date(p.at)).sort((a, b) => a - b);
@@ -154,13 +152,14 @@ async function renderTwin() {
 
     <section class="section">
       <h2>Progress curves</h2>
-      <p class="sub">The blue ribbon is the 90% range at each check-in. The orange fan is a plausible range if practice continues in a similar way, and it is never a prediction.</p>
+      <p class="sub">The fan shows a plausible range if practice continues in a similar way. It is never a prediction.</p>
+      <div class="legend curves-legend"><span><i class="est"></i>Estimate</span><span><i class="band"></i>90% range at each check-in</span><span><i class="proj"></i>Plausible range ahead</span></div>
       <div class="small-multiples" id="curves"></div>
     </section>
 
     <section class="section">
       <h2>Heatmaps</h2>
-      <div class="heat-tabs row" role="group" aria-label="Choose heatmap">
+      <div class="heat-tabs segmented" role="group" aria-label="Choose heatmap">
         <button class="btn toggle" aria-pressed="true" id="ht-week">Estimate by week</button>
         <button class="btn toggle" aria-pressed="false" id="ht-level">Success by difficulty</button>
       </div>
@@ -175,13 +174,16 @@ async function renderTwin() {
   </div>`;
   bindStarters(main);
 
+  const radarEl = document.getElementById("radar");
   const paint = (rows, label) => {
-    const el = document.getElementById("radar");
-    el.innerHTML = Charts.radar(rows, { label });
-    Charts.bindRadar(el, rows);
+    radarEl.innerHTML = Charts.radar(rows, { label, size: radarEl.clientWidth });
+    Charts.bindRadar(radarEl, rows);
   };
   const now = t.profile;
   paint(now.map((d) => ({ ...d })), "Current Brain Twin");
+  /* The one orchestrated moment: the band comes into focus once, when the twin first appears. */
+  radarEl.classList.add("focus-pull");
+  setTimeout(() => radarEl.classList.remove("focus-pull"), 600);
   document.getElementById("range-list").innerHTML = now.map((d) => Charts.rangeRow(d, { href: `#/skill/${d.key}` })).join("");
   document.getElementById("radar-table").innerHTML = `<table class="data"><thead><tr><th>Skill</th><th>Estimate</th><th>Low</th><th>High</th><th>Items</th></tr></thead><tbody>${now.map((d) => `<tr><td>${esc(d.name)}</td><td>${d.n_trials ? fmt(d.pct) + "%" : "none yet"}</td><td>${fmt(d.low)}</td><td>${fmt(d.high)}</td><td>${d.n_trials}</td></tr>`).join("")}</tbody></table>`;
 
@@ -202,9 +204,14 @@ async function renderTwin() {
 
   const curves = document.getElementById("curves");
   curves.innerHTML = now.filter((d) => (t.history[d.key] || []).length).map((d) =>
-    `<div class="sm"><a href="#/skill/${d.key}"><h3>${esc(d.name)}</h3></a><div class="chart" data-key="${d.key}">${Charts.progress(t.history[d.key], { projection: t.projections[d.key], now: t.now, label: `${d.name} progress` })}</div></div>`).join("") ||
+    `<div class="sm"><a href="#/skill/${d.key}"><h3>${esc(d.name)}</h3></a><div class="chart" data-key="${d.key}" data-name="${esc(d.name)}"></div></div>`).join("") ||
     `<p class="muted">Finish a check-in and your first curve will appear here.</p>`;
-  curves.querySelectorAll(".chart").forEach((el) => Charts.bindProgress(el, t.history[el.dataset.key], { projection: t.projections[el.dataset.key] }));
+  /* Drawn at their on-screen width so axis labels keep their real size. */
+  curves.querySelectorAll(".chart").forEach((el) => {
+    const k = el.dataset.key, width = Math.max(150, el.clientWidth);
+    el.innerHTML = Charts.progress(t.history[k], { projection: t.projections[k], now: t.now, width, height: 140, label: `${el.dataset.name} progress` });
+    Charts.bindProgress(el, t.history[k], { projection: t.projections[k], width });
+  });
 
   const heat = document.getElementById("heat");
   const drawWeek = () => {

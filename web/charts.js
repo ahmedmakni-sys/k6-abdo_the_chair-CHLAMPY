@@ -9,22 +9,42 @@ const Charts = (() => {
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const fmt = (x) => Math.round(x);
 
-  function showTip(evt, html) {
+  /* Tooltips follow the pointer, or sit beside an element when it has keyboard focus or was tapped. */
+  function showTip(at, html) {
     const tip = document.getElementById("tooltip");
     tip.innerHTML = html;
     tip.hidden = false;
+    let cx = at.clientX, cy = at.clientY;
+    if (cx === undefined) {
+      const b = at.getBoundingClientRect();
+      cx = b.left + b.width / 2;
+      cy = b.top + b.height / 2;
+    }
     const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
-    let x = evt.clientX + pad, y = evt.clientY + pad;
-    if (x + w > window.innerWidth - 8) x = evt.clientX - w - pad;
-    if (y + h > window.innerHeight - 8) y = evt.clientY - h - pad;
+    let x = cx + pad, y = cy + pad;
+    if (x + w > window.innerWidth - 8) x = Math.max(8, cx - w - pad);
+    if (y + h > window.innerHeight - 8) y = Math.max(8, cy - h - pad);
     tip.style.left = x + "px";
     tip.style.top = y + "px";
   }
   function hideTip() { document.getElementById("tooltip").hidden = true; }
 
-  /* The Brain Twin radar. The ring between low and high is the uncertainty; the line is the estimate. */
+  /* Hover, focus and tap all reveal the same detail. */
+  function bindTip(target, html, anchor = target) {
+    target.addEventListener("pointermove", (e) => { if (e.pointerType === "mouse") showTip(e, html); });
+    target.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") hideTip(); });
+    target.addEventListener("click", () => showTip(anchor, html));
+    target.addEventListener("focus", () => showTip(anchor, html));
+    target.addEventListener("blur", hideTip);
+  }
+
+  /* The Brain Twin radar. The ring between low and high is the uncertainty; the line is the estimate.
+     Pass the rendered width as size so text is drawn at its real size; narrow sizes get a tighter layout. */
   function radar(rows, opts = {}) {
-    const size = opts.size || 560, cx = size / 2, cy = size / 2 + 2, R = size * 0.34;
+    const size = Math.max(300, Math.min(600, Math.round(opts.size || 560)));
+    const compact = size < 470;
+    const cx = size / 2, cy = size / 2 + 2, R = size * (compact ? 0.27 : 0.34);
+    const fs = compact ? 12 : 13.5, lh = fs + 1;
     const n = rows.length;
     const pt = (i, v) => {
       const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
@@ -35,7 +55,7 @@ const Charts = (() => {
     for (const ring of [25, 50, 75, 100]) {
       svg += `<polygon points="${poly(rows.map(() => ring))}" fill="none" stroke="${GRID}" stroke-width="1"/>`;
       const p = pt(0, ring);
-      svg += `<text x="${p[0] + 4}" y="${p[1] + 11}" font-size="10.5" fill="${INK3}">${ring}</text>`;
+      svg += `<text x="${p[0] + 4}" y="${p[1] + 11}" font-size="11" style="font-family:var(--font-display)" fill="${INK3}">${ring}</text>`;
     }
     rows.forEach((_, i) => {
       const p = pt(i, 100);
@@ -43,22 +63,25 @@ const Charts = (() => {
     });
     const outer = rows.map((r) => r.high), inner = rows.map((r) => r.low);
     const pathOf = (vals) => "M" + vals.map((v, i) => pt(i, v).map((x) => x.toFixed(1)).join(" ")).join("L") + "Z";
-    svg += `<path d="${pathOf(outer)} ${pathOf(inner)}" fill="${BAND}" fill-opacity=".85" fill-rule="evenodd" stroke="${LINE}" stroke-width="1"/>`;
+    svg += `<path class="radar-band" d="${pathOf(outer)} ${pathOf(inner)}" fill="${BAND}" fill-opacity=".85" fill-rule="evenodd" stroke="${LINE}" stroke-width="1"/>`;
     svg += `<polygon points="${poly(rows.map((r) => r.pct))}" fill="none" stroke="${INK}" stroke-width="2.25" stroke-linejoin="round"/>`;
     rows.forEach((r, i) => {
       const p = pt(i, r.pct);
       const empty = r.n_trials === 0;
       svg += `<circle cx="${p[0]}" cy="${p[1]}" r="${empty ? 3.5 : 4.5}" fill="${empty ? PAPER : INK}" stroke="${empty ? INK3 : PAPER}" stroke-width="1.5"/>`;
       const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
-      const lx = cx + (R + 16) * Math.cos(a), ly = cy + (R + 16) * Math.sin(a);
+      const lx = cx + (R + 14) * Math.cos(a), ly = cy + (R + 14) * Math.sin(a);
       const anchor = Math.abs(Math.cos(a)) < 0.2 ? "middle" : Math.cos(a) > 0 ? "start" : "end";
-      const words = r.name.split(" ");
-      const lines = words.length > 1 ? [words[0], words.slice(1).join(" ")] : [r.name];
-      const dy = Math.sin(a) < -0.5 ? -(lines.length - 1) * 14 : Math.sin(a) > 0.5 ? 10 : 4 - (lines.length - 1) * 7;
-      svg += `<text x="${lx}" y="${ly + dy}" text-anchor="${anchor}" font-size="13.5" fill="${INK}" font-weight="500">` +
-        lines.map((l, k) => `<tspan x="${lx}" dy="${k ? 14 : 0}">${esc(l)}</tspan>`).join("") + `</text>`;
+      /* Two lines at most; on narrow charts a hyphenated name breaks after its hyphen. */
+      const name = compact ? r.name.replace("-", "- ") : r.name;
+      const words = name.split(" ");
+      const lines = words.length > 1 ? [words[0], words.slice(1).join(" ")] : [name];
+      const dy = Math.sin(a) < -0.5 ? -(lines.length - 1) * lh : Math.sin(a) > 0.5 ? fs - 2 : 4 - (lines.length - 1) * (lh / 2);
+      svg += `<text x="${lx.toFixed(1)}" y="${(ly + dy).toFixed(1)}" text-anchor="${anchor}" font-size="${fs}" fill="${INK}" font-weight="600">` +
+        lines.map((l, k) => `<tspan x="${lx.toFixed(1)}" dy="${k ? lh : 0}">${esc(l)}</tspan>`).join("") + `</text>`;
       const big = pt(i, 100);
-      svg += `<circle class="hit" data-i="${i}" cx="${(p[0] + big[0]) / 2}" cy="${(p[1] + big[1]) / 2}" r="${Math.max(18, R * 0.3)}" fill="transparent"/>`;
+      const tip = r.n_trials === 0 ? `${r.name}: no evidence yet` : `${r.name}: about ${fmt(r.pct)} percent, range ${fmt(r.low)} to ${fmt(r.high)}`;
+      svg += `<circle class="hit" data-i="${i}" tabindex="0" role="img" aria-label="${esc(tip)}" cx="${(p[0] + big[0]) / 2}" cy="${(p[1] + big[1]) / 2}" r="${Math.max(18, R * 0.3)}" fill="transparent"/>`;
     });
     svg += `</svg>`;
     return svg;
@@ -70,15 +93,15 @@ const Charts = (() => {
       const label = r.n_trials === 0
         ? `<b>${esc(r.name)}</b><br>No evidence yet`
         : `<b>${esc(r.name)}</b><br>About ${fmt(r.pct)}%, range ${fmt(r.low)} to ${fmt(r.high)}<br>${r.n_trials} items`;
-      h.addEventListener("mousemove", (e) => showTip(e, label));
-      h.addEventListener("mouseleave", hideTip);
+      bindTip(h, label);
     });
   }
 
   /* Progress curve: estimate line, uncertainty ribbon and, when offered, a projection fan. */
   function progress(points, opts = {}) {
     const W = opts.width || 320, H = opts.height || 150;
-    const m = { l: 28, r: 8, t: 8, b: 20 };
+    const m = { l: 30, r: 8, t: 8, b: 22 };
+    const AX = `font-size="12" style="font-family:var(--font-display)" fill="${INK3}"`;
     const proj = opts.projection && opts.projection.available ? opts.projection.ranges : null;
     const ts = points.map((p) => +new Date(p.at));
     const end = proj ? +new Date(proj[proj.length - 1].at) : Math.max(...ts);
@@ -86,14 +109,14 @@ const Charts = (() => {
     const span = Math.max(end - start, 86400000);
     const x = (t) => m.l + ((t - start) / span) * (W - m.l - m.r);
     const y = (v) => m.t + (1 - v / 100) * (H - m.t - m.b);
-    let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.label || "Progress over time")}">`;
+    let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" tabindex="0" aria-label="${esc((opts.label || "Progress over time") + ". Use the arrow keys to step through check-ins.")}">`;
     for (const v of [0, 50, 100]) {
       svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="${v === 0 ? INK3 : GRID}" stroke-width="1"/>`;
-      svg += `<text x="${m.l - 5}" y="${y(v) + 3.5}" font-size="10" text-anchor="end" fill="${INK3}">${v}</text>`;
+      svg += `<text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end" ${AX}>${v}</text>`;
     }
     const fd = (t) => new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-    svg += `<text x="${m.l}" y="${H - 5}" font-size="10" fill="${INK3}">${fd(start)}</text>`;
-    svg += `<text x="${W - m.r}" y="${H - 5}" font-size="10" text-anchor="end" fill="${INK3}">${fd(end)}</text>`;
+    svg += `<text x="${m.l}" y="${H - 5}" ${AX}>${fd(start)}</text>`;
+    svg += `<text x="${W - m.r}" y="${H - 5}" text-anchor="end" ${AX}>${fd(end)}</text>`;
     if (points.length) {
       const up = points.map((p) => `${x(+new Date(p.at)).toFixed(1)},${y(p.high).toFixed(1)}`);
       const down = points.slice().reverse().map((p) => `${x(+new Date(p.at)).toFixed(1)},${y(p.low).toFixed(1)}`);
@@ -123,7 +146,7 @@ const Charts = (() => {
     const svg = el.querySelector("svg");
     if (!svg || !points.length) return;
     const W = opts.width || 320;
-    const m = { l: 28, r: 8 };
+    const m = { l: 30, r: 8 };
     const proj = opts.projection && opts.projection.available ? opts.projection.ranges : [];
     const all = points.map((p) => ({ at: +new Date(p.at), html: `<b>${fmtDate(p.at)}</b><br>About ${fmt(p.pct)}%, range ${fmt(p.low)} to ${fmt(p.high)}` }))
       .concat(proj.map((p) => ({ at: +new Date(p.at), html: `<b>In ${p.days} days, if practice continues</b><br>Plausible range ${fmt(p.low90)} to ${fmt(p.high90)}` })));
@@ -132,20 +155,38 @@ const Charts = (() => {
     const toX = (t) => m.l + ((t - start) / span) * (W - m.l - m.r);
     const cross = svg.querySelector(".crosshair");
     const layer = svg.querySelector(".hover-layer");
-    layer.addEventListener("mousemove", (e) => {
+    let current = points.length - 1;
+    const select = (i, at) => {
+      current = Math.max(0, Math.min(all.length - 1, i));
+      const a = all[current];
+      cross.setAttribute("x1", toX(a.at));
+      cross.setAttribute("x2", toX(a.at));
+      cross.setAttribute("visibility", "visible");
+      if (at) showTip(at, a.html);
+      else {
+        const box = svg.getBoundingClientRect();
+        showTip({ clientX: box.left + (toX(a.at) / W) * box.width, clientY: box.top + box.height * 0.3 }, a.html);
+      }
+    };
+    const nearest = (e) => {
       const box = svg.getBoundingClientRect();
       const px = ((e.clientX - box.left) / box.width) * W;
-      let best = all[0], bestD = Infinity;
-      for (const a of all) {
-        const d = Math.abs(toX(a.at) - px);
-        if (d < bestD) { bestD = d; best = a; }
-      }
-      cross.setAttribute("x1", toX(best.at));
-      cross.setAttribute("x2", toX(best.at));
-      cross.setAttribute("visibility", "visible");
-      showTip(e, best.html);
+      let best = 0, bestD = Infinity;
+      all.forEach((a, i) => { const d = Math.abs(toX(a.at) - px); if (d < bestD) { bestD = d; best = i; } });
+      return best;
+    };
+    const clear = () => { cross.setAttribute("visibility", "hidden"); hideTip(); };
+    layer.addEventListener("pointermove", (e) => select(nearest(e), e));
+    layer.addEventListener("pointerdown", (e) => select(nearest(e), e));
+    layer.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") clear(); });
+    svg.addEventListener("focus", () => select(current));
+    svg.addEventListener("blur", clear);
+    svg.addEventListener("keydown", (e) => {
+      const step = { ArrowLeft: -1, ArrowRight: 1, Home: -Infinity, End: Infinity }[e.key];
+      if (step === undefined) return;
+      e.preventDefault();
+      select(step === -Infinity ? 0 : step === Infinity ? all.length - 1 : current + step);
     });
-    layer.addEventListener("mouseleave", () => { cross.setAttribute("visibility", "hidden"); hideTip(); });
   }
 
   function fmtDate(iso) {
@@ -160,7 +201,7 @@ const Charts = (() => {
   function heatInk(v) { return lum(heatColor(v)) > 0.2 ? INK : PAPER; }
 
   function heatmap(rowsMeta, columns, valueOf, tipOf) {
-    let html = `<div class="heat" style="grid-template-columns:minmax(120px,auto) repeat(${columns.length},minmax(30px,1fr))">`;
+    let html = `<div class="heat" style="grid-template-columns:minmax(120px,auto) repeat(${columns.length},minmax(46px,1fr))">`;
     html += `<div></div>` + columns.map((c) => `<div class="hd">${esc(c)}</div>`).join("");
     for (const row of rowsMeta) {
       html += `<div class="lab">${esc(row.name)}</div>`;
@@ -175,8 +216,9 @@ const Charts = (() => {
 
   function bindHeat(el) {
     el.querySelectorAll(".cell").forEach((c) => {
-      c.addEventListener("mousemove", (e) => showTip(e, esc(c.dataset.tip)));
-      c.addEventListener("mouseleave", hideTip);
+      c.setAttribute("role", "img");
+      c.setAttribute("aria-label", c.dataset.tip);
+      bindTip(c, esc(c.dataset.tip));
     });
   }
 
